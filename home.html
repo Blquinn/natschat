@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <title>Chat</title>
+</head>
+<body>
+
+<style>
+    #chat-log {
+        height: 20em;
+        width: 34em;
+        overflow-y: scroll;
+    }
+</style>
+
+<div id="app">
+    <h1>Chat</h1>
+    <div class="connection-indicator">
+        <span v-if="connected" style="background-color: orange">Not connected</span>
+        <span v-else style="background-color: green">Connected</span>
+    </div>
+    <div id="chat-log">
+        <div v-for="message in chatLog">
+            <span>{{ message.user }}</span>:
+            <span>{{ message.content }}</span>
+            <span v-if="message.acknowledged">✔️</span>
+            <span v-if="message.deliveryFailure">❌ - Failed to send message</span>
+        </div>
+    </div>
+
+    <div id="chat-input">
+        <input type="text" v-model="messageInput" v-on:keyup.13="sendMessage">
+        <button id="send-message-btn" v-on:click="sendMessage">Send</button>
+    </div>
+</div>
+
+<script type="text/javascript">
+    var app = new Vue({
+        el: '#app',
+        data: {
+            chatLog: [
+                {
+                    id: 0,
+                    clientId: '',
+                    content: 'Hey there!',
+                    user: 'ben',
+                    acknowledged: true,
+                    deliveryFailure: false,
+                },
+                {
+                    id: 1,
+                    clientId: '',
+                    content: 'Hey there again!',
+                    user: 'ben',
+                    acknowledged: true,
+                    deliveryFailure: false,
+                }
+            ],
+            messageInput: '',
+            ws: null,
+            connected: false,
+        },
+        created: function() {
+            var ws = new WebSocket('ws://localhost:5000/ws');
+            ws.onopen = function () {
+                console.log('opened ws');
+                this.connected = true;
+            };
+
+            ws.onerror = function (e) {
+                console.error('got ws error');
+                this.connected = false;
+            };
+
+            ws.onclose = function (e) {
+                console.warn('closed ws', e);
+                this.connected = false;
+            };
+
+            ws.onmessage = function (msg) {
+                // console.info('got ws msg', msg);
+                let obj = JSON.parse(msg.data);
+                switch (obj.Type) {
+                    case 'SUBACK':
+                        console.log('Got SUBACK', obj.Body);
+                        break;
+                    case 'CHAT':
+                        console.log("Got CHAT", obj);
+                        break;
+                    case 'CHATACK':
+                        console.log("Got CHATACK", obj);
+                        const logMsg = app.chatLog.find(l => l.clientId === obj.Body.ClientID);
+                        if (logMsg !== undefined) {
+                            logMsg.acknowledged = true;
+                        }
+                        break;
+                    default:
+                        console.log('Got other msg', obj);
+                        break;
+                }
+            };
+            this.ws = ws;
+
+            // TODO: Get rid of me
+            setTimeout(subscribeToChannel, 100, 'chat.room.1');
+        },
+        methods: {
+            sendMessage: function sendMessage() {
+                if (this.messageInput === '' && this.ws !== null) {
+                    return;
+                }
+
+                if (this.ws === null) {
+                    alert('Websocket not connected');
+                    return;
+                }
+
+                let clientId = createUID();
+
+                this.chatLog.push({
+                    content: this.messageInput,
+                    user: 'ben',
+                    acknowledged: false,
+                    clientId: clientId,
+                    deliveryFailure: false,
+                });
+
+                this.ws.send(JSON.stringify({
+                    Type: 'CHAT',
+                    Body: {
+                        Channel: 'chat.room.1',
+                        Content: this.messageInput,
+                        ClientID: clientId,
+                    }
+                }));
+
+                this.messageInput = '';
+
+                // If the message is not acknowledged withing 10s, mark it not delivered
+                setTimeout(function () {
+                    const logMsg = app.chatLog.find(l => l.clientId === clientId);
+                    if (logMsg !== undefined && logMsg.acknowledged !== true) {
+                        logMsg.deliveryFailure = true;
+                    }
+                }, 10000)
+            }
+        }
+    });
+
+    function subscribeToChannel(channel) {
+        app.ws.send(JSON.stringify({
+            Type: 'SUB',
+            Body: {
+                Channel: channel,
+            }
+        }));
+    }
+
+    // Creates a pseudo-unique id to tag messages before sending them to the backend.
+    function createUID() {
+        return new Date().getTime().toString() + Math.random().toString().substr(2, 9)
+    }
+
+</script>
+
+</body>
+</html>
