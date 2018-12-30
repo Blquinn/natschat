@@ -26,7 +26,7 @@
 // @ is an alias to /src
 import ChatContainer from "../components/ChatContainer";
 
-import axios from 'axios';
+import http from '../httpclient';
 
 export default {
   name: 'home',
@@ -43,11 +43,8 @@ export default {
   },
   methods: {
     loadChatRooms: function() {
-      axios.get('http://localhost:5000/api/rooms', {
-        headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJxdWlubkBtYXRhZG9yYXBwLmNvbSIsImV4cCI6MjU0NjEzNTk4NCwidXNlcl9pZCI6ImU0OTE4OTgzLWY4YzEtNGE0YS1iODE4LWQ0YjMxMTQ5ZDZjNCIsInVzZXJuYW1lIjoiYmVuIn0.ZxMyCa03yitGrpLK3ZUZv490YAzERrVVnkVq-SoMIDU`
-        }
-      }).catch(err => {
+      http.get('/api/rooms')
+      .catch(err => {
         alert('An error occurred while loading chat rooms');
         console.error(err);
       }).then(res => {
@@ -62,11 +59,8 @@ export default {
 
       let body = {Name: this.roomNameInput};
 
-      axios.post('http://localhost:5000/api/rooms', body, {
-        headers: {
-          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJxdWlubkBtYXRhZG9yYXBwLmNvbSIsImV4cCI6MjU0NjEzNTk4NCwidXNlcl9pZCI6ImU0OTE4OTgzLWY4YzEtNGE0YS1iODE4LWQ0YjMxMTQ5ZDZjNCIsInVzZXJuYW1lIjoiYmVuIn0.ZxMyCa03yitGrpLK3ZUZv490YAzERrVVnkVq-SoMIDU`
-        }
-      }).catch(err => {
+      http.post('/api/rooms', body)
+      .catch(err => {
         alert('An error occurred while creating chat room');
         console.error(err);
       }).then(res => {
