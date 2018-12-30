@@ -1,18 +1,93 @@
 <template>
   <div class="home">
-    <img alt="Vue logo" src="../assets/logo.png">
-    <HelloWorld msg="Welcome to Your Vue.js App"/>
+    <!--<input type="text" >-->
+    <div class="chat-rooms-container">
+      <p>Select a chat room</p>
+      <div class="room" v-for="room in rooms" v-on:click="openChatRoom(room)">
+        {{ room.Name }}
+      </div>
+    </div>
+
+    <div class="create-chat-room-container">
+      <p>Or, create one</p>
+      <input type="text" placeholder="Room name"
+             v-model="roomNameInput"
+             v-on:keyup.enter="createChatRoom()" />
+      <button v-on:click="createChatRoom()">Create</button>
+    </div>
+
+    <div class="chat-container">
+      <ChatContainer v-for="room in openRooms" v-bind:room-id="room.ID" />
+    </div>
   </div>
 </template>
 
 <script>
 // @ is an alias to /src
-import HelloWorld from '@/components/HelloWorld.vue'
+import ChatContainer from "../components/ChatContainer";
+
+import axios from 'axios';
 
 export default {
   name: 'home',
+  data: function() {
+    return {
+      loadingRooms: true,
+      rooms: [],
+      openRooms: [],
+      roomNameInput: '',
+    };
+  },
+  created: function() {
+    this.loadChatRooms()
+  },
+  methods: {
+    loadChatRooms: function() {
+      axios.get('http://localhost:5000/api/rooms', {
+        headers: {
+          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJxdWlubkBtYXRhZG9yYXBwLmNvbSIsImV4cCI6MjU0NjEzNTk4NCwidXNlcl9pZCI6ImU0OTE4OTgzLWY4YzEtNGE0YS1iODE4LWQ0YjMxMTQ5ZDZjNCIsInVzZXJuYW1lIjoiYmVuIn0.ZxMyCa03yitGrpLK3ZUZv490YAzERrVVnkVq-SoMIDU`
+        }
+      }).catch(err => {
+        alert('An error occurred while loading chat rooms');
+        console.error(err);
+      }).then(res => {
+        this.rooms = res.data.Results;
+        this.loadingRooms = false;
+      })
+    },
+    createChatRoom: function() {
+      if (this.roomNameInput === '') {
+        return;
+      }
+
+      let body = {Name: this.roomNameInput};
+
+      axios.post('http://localhost:5000/api/rooms', body, {
+        headers: {
+          Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImJxdWlubkBtYXRhZG9yYXBwLmNvbSIsImV4cCI6MjU0NjEzNTk4NCwidXNlcl9pZCI6ImU0OTE4OTgzLWY4YzEtNGE0YS1iODE4LWQ0YjMxMTQ5ZDZjNCIsInVzZXJuYW1lIjoiYmVuIn0.ZxMyCa03yitGrpLK3ZUZv490YAzERrVVnkVq-SoMIDU`
+        }
+      }).catch(err => {
+        alert('An error occurred while creating chat room');
+        console.error(err);
+      }).then(res => {
+        this.rooms.push(res.data);
+      });
+
+      this.roomNameInput = '';
+    },
+    openChatRoom: function(room) {
+      this.openRooms.push(room)
+    },
+  },
   components: {
-    HelloWorld
+    ChatContainer
   }
 }
 </script>
+
+<style scoped>
+  .room {
+    margin-top: .15em;
+    cursor: pointer;
+  }
+</style>

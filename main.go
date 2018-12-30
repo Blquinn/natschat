@@ -2,21 +2,21 @@ package main
 
 import (
 	"flag"
-	"github.com/gin-contrib/cors"
+	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq"
 	"github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v9"
-	"net/http"
-	"playground/natschat/config"
-	"playground/natschat/models"
-	"playground/natschat/services"
-	"playground/natschat/utils/auth"
+	"natschat/config"
+	"natschat/services"
+	"natschat/utils/auth"
+	"os"
 )
 
 var (
-	addr = flag.String("addr", ":5000", "http service address")
-	debug = flag.Bool("debug", false, "use debug mode")
+	configPath = flag.String("config", "", "config.yml path")
 
 	validate *validator.Validate
 )
@@ -31,7 +31,13 @@ func init() {
 func main() {
 	flag.Parse()
 
-	if *debug {
+	cfg, err := getConfig()
+	if err != nil {
+		log.Fatalf("Error loading cfg: %v", err)
+		os.Exit(1)
+	}
+
+	if cfg.Debug {
 		log.SetLevel(log.DebugLevel)
 		gin.SetMode(gin.DebugMode)
 	} else {
@@ -50,72 +56,47 @@ func main() {
 	hub := newHub()
 	go hub.run()
 
-	log.Println("listening on " + *addr)
+	log.Println("listening on " + cfg.Server.Address)
 
-	db := config.GetDBConn()
+	db := getDBConn(cfg)
 	userService := services.NewUserService(db)
+	chatService := services.NewChatService(db)
+	jwt := auth.NewJWT(cfg)
 
-	r := setupRouter(hub, gnats, userService)
-	err = r.Run(*addr)
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
+	s := Server{
+		config:      cfg,
+		db:          db,
+		jwt:         jwt,
+		hub:         hub,
+		gnats:       gnats,
+		userService: userService,
+		chatService: chatService,
 	}
+	s.Run()
 }
 
-func setupRouter(hub *Hub, gnats *Gnats, userService services.IUserService) *gin.Engine {
-	r := gin.New()
-	r.Use(gin.Recovery())
-	if *debug {
-		r.Use(gin.Logger())
-		corsCfg := cors.DefaultConfig()
-		corsCfg.AllowAllOrigins = true
-		r.Use(cors.New(corsCfg))
+func getConfig() (*config.Config, error) {
+	var cfg *config.Config
+	var err error
+	if *configPath == "" {
+		if cfg, err = config.Parse("config.yml"); err != nil {
+			return cfg, err
+		}
+	} else {
+		if cfg, err = config.Parse(*configPath); err != nil {
+			return cfg, err
+		}
 	}
-
-	r.GET("/", func(c *gin.Context) {
-		c.File("home.html")
-	})
-	r.POST("/login", loginHandler(userService))
-
-	api := r.Group("/api")
-	api.Use(auth.AuthenticateUserJWT)
-	api.GET("/something", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"detail": "Cool!"})
-	})
-
-	r.GET("/ws", func (c *gin.Context) {
-		serveWs(hub, gnats, c.Writer, c.Request)
-	})
-	return r
+	return cfg, nil
 }
 
-func loginHandler(userService services.IUserService) func(ctx *gin.Context) {
-	return func(c *gin.Context) {
-		var body models.LoginRequest
-		if err := c.ShouldBindJSON(&body); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"detail": err.Error()})
-			return
-		}
-
-		user, err := userService.GetUserByUsername(body.Username)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"detail": "User not found."})
-			return
-		}
-
-		if user.Password != body.Password {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"detail": "Incorrect username or password."})
-			return
-		}
-
-		jwt, err := auth.CreateJWT(user)
-		if err != nil {
-			c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"detail": "Error occurred while processing request"})
-			return
-		}
-
-		c.JSON(http.StatusOK, &map[string]string{
-			"token": jwt,
-		})
+func getDBConn(cfg *config.Config) *sqlx.DB {
+	var url string
+	if cfg.DB.Host == "" {
+		url = "host=localhost port=5432 user=ben password=password dbname=chat sslmode=disable"
+	} else {
+		url = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			cfg.DB.Host, cfg.DB.Port, cfg.DB.User, cfg.DB.Password, cfg.DB.Name, cfg.DB.SSLMode)
 	}
+	return sqlx.MustConnect("postgres", url)
 }

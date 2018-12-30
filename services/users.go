@@ -2,7 +2,7 @@ package services
 
 import (
 	"github.com/jmoiron/sqlx"
-	"playground/natschat/models"
+	"natschat/models"
 )
 
 type IUserService interface {

@@ -6,29 +6,24 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
-	"os"
-	"playground/natschat/models"
+	"natschat/config"
+	"natschat/models"
 	"time"
 )
 
-var (
-	jwtSecretKey = getJWTSecretKey()
+type JWT struct {
+	config *config.Config
+}
 
-	//jwtLeeway = 1
-)
-
-func getJWTSecretKey() []byte {
-	key := os.Getenv("JWT_SECRET_KEY")
-	if key != "" {
-		return []byte(key)
+func NewJWT(c *config.Config) *JWT {
+	return &JWT{
+		config: c,
 	}
-	log.Println("JWT_SECRET_KEY missing using default")
-	return []byte("replace_me")
 }
 
 // AuthenticateUserJWT retrieves the user's information from the database
 // and adds it to the gin context
-func AuthenticateUserJWT(c *gin.Context) {
+func (j *JWT) AuthenticateUserJWT(c *gin.Context) {
 	token, err := parseBearerToken(c)
 	if err != nil {
 		log.Debugln(err.Err.Error())
@@ -36,7 +31,7 @@ func AuthenticateUserJWT(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	user, ok := userIsAuthenticatedJWT(token)
+	user, ok := j.userIsAuthenticatedJWT(token)
 	if !ok {
 		c.JSON(401, authFailure)
 		c.Abort()
@@ -45,8 +40,8 @@ func AuthenticateUserJWT(c *gin.Context) {
 	c.Set("user", user)
 }
 
-func userIsAuthenticatedJWT(tokenString string) (models.User, bool) {
-	user, err := ParseAndValidateJWT(tokenString)
+func (j *JWT) userIsAuthenticatedJWT(tokenString string) (models.User, bool) {
+	user, err := j.ParseAndValidateJWT(tokenString)
 	if err != nil {
 		return models.User{}, false
 	}
@@ -55,7 +50,7 @@ func userIsAuthenticatedJWT(tokenString string) (models.User, bool) {
 
 // ParseAndValidateJWT returns an error or a successfully parsed JWT Token
 // func ParseAndValidateJWT(tokenString string) (*jwt.Token, error) {
-func ParseAndValidateJWT(tokenString string) (models.User, error) {
+func (j *JWT) ParseAndValidateJWT(tokenString string) (models.User, error) {
 
 	// Parse takes the token string and a function for looking up the key. The latter is especially
 	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
@@ -69,7 +64,7 @@ func ParseAndValidateJWT(tokenString string) (models.User, error) {
 		}
 
 		// hmacSampleSecret is a []byte containing your secret, e.g. []byte("my_secret_key")
-		return jwtSecretKey, nil
+		return []byte(j.config.JWT.SecretKey), nil
 	})
 
 	if err != nil {
@@ -100,20 +95,21 @@ func ParseAndValidateJWT(tokenString string) (models.User, error) {
 }
 
 // creates a jwtString
-func CreateJWT(user *models.User) (string, error) {
+func (j *JWT) CreateJWT(user *models.User) (string, error) {
 	// Create a new token object, specifying signing method and the claims
 	// you would like it to contain.
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"email":       user.Email,
 		"username":    user.Username,
 		"user_id":     user.ID,
-		"exp":         time.Now().In(time.UTC).Add(15 * time.Minute).Unix(),
+		"exp":         time.Now().In(time.UTC).Add(time.Duration(j.config.JWT.ExpirySeconds) * time.Second).Unix(),
 	})
 
 	// Sign and get the complete encoded token as a string using the secret
-	tokenString, err := token.SignedString(jwtSecretKey)
+	tokenString, err := token.SignedString([]byte(j.config.JWT.SecretKey))
 	if err != nil {
-		return "", nil
+		log.Errorf("An error occurred while creating JWT: %v", err)
+		return tokenString, err
 	}
 	return tokenString, nil
 }

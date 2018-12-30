@@ -5,7 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/palantir/stacktrace"
 	log "github.com/sirupsen/logrus"
-	"playground/natschat/models"
+	"natschat/models"
 	"strings"
 )
 

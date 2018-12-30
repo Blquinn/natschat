@@ -1,0 +1,18 @@
+debug: true
+
+environment: local
+
+server:
+  address: :5000
+
+db:
+  host: localhost
+  port: 5432
+  user: ben
+  password: password
+  name: chat
+  ssl_mode: disable
+
+jwt:
+  secret_key: replace_me
+  expiry_seconds: 999999999

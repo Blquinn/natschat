@@ -12,3 +12,7 @@ type User struct {
 	InsertedAt time.Time `db:"inserted_at"`
 	UpdatedAt time.Time `db:"updated_at"`
 }
+
+type PublicUserDTO struct {
+	Username string
+}
