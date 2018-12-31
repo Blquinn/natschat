@@ -50,7 +50,8 @@ function connect() {
                 break;
             case 'CHATACK':
                 console.log("Got CHATACK", obj);
-                store.commit('acknowledgeChatMessage', obj.Body);
+                const roomId = obj.Body.Channel.split('.').pop();
+                store.commit('acknowledgeChatMessage', {roomId, messageClientId: obj.Body.ClientID});
                 break;
             default:
                 console.log('Got other msg', obj);

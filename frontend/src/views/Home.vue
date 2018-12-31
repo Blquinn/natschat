@@ -4,7 +4,7 @@
     <div class="chat-rooms-container">
       <p>Select a chat room</p>
       <div class="room" v-for="room in rooms" v-on:click="openChatRoom(room)">
-        {{ room.Name }}
+        {{ room.name }}
       </div>
     </div>
 
@@ -16,9 +16,10 @@
       <button v-on:click="createChatRoom()">Create</button>
     </div>
 
-    <div class="chat-container">
-      <ChatContainer v-for="room in openRooms" v-bind:room-id="room.ID" />
+    <div class="chats-container">
+        <ChatContainer v-for="room in openRooms" v-bind:room="room" />
     </div>
+
   </div>
 </template>
 
@@ -26,51 +27,36 @@
 // @ is an alias to /src
 import ChatContainer from "../components/ChatContainer";
 
-import http from '../httpclient';
-
 export default {
   name: 'home',
+  computed: {
+    rooms() {
+      return this.$store.state.chatRooms
+    },
+    openRooms() {
+      return this.$store.state.chatRooms.filter(r => r.active === true)
+    },
+  },
   data: function() {
     return {
-      loadingRooms: true,
-      rooms: [],
-      openRooms: [],
       roomNameInput: '',
     };
   },
   created: function() {
-    this.loadChatRooms()
+    this.$store.dispatch('loadChatRooms')
   },
   methods: {
-    loadChatRooms: function() {
-      http.get('/api/rooms')
-      .catch(err => {
-        alert('An error occurred while loading chat rooms');
-        console.error(err);
-      }).then(res => {
-        this.rooms = res.data.Results;
-        this.loadingRooms = false;
-      })
-    },
     createChatRoom: function() {
       if (this.roomNameInput === '') {
         return;
       }
 
-      let body = {Name: this.roomNameInput};
-
-      http.post('/api/rooms', body)
-      .catch(err => {
-        alert('An error occurred while creating chat room');
-        console.error(err);
-      }).then(res => {
-        this.rooms.push(res.data);
-      });
+      this.$store.dispatch('createChatRoom', this.roomNameInput);
 
       this.roomNameInput = '';
     },
     openChatRoom: function(room) {
-      this.openRooms.push(room)
+      this.$store.commit('openChatRoom', room.id);
     },
   },
   components: {
@@ -81,7 +67,14 @@ export default {
 
 <style scoped>
   .room {
-    margin-top: .15em;
     cursor: pointer;
+    display: inline-block;
+    margin: .5em;
+    padding: .5em;
+    background-color: aquamarine;
+  }
+
+  .chats-container {
+    display: inline-block;
   }
 </style>

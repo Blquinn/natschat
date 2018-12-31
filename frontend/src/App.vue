@@ -15,10 +15,10 @@
 <script>
   export default {
     computed: {
-        connected() {
-            return this.$store.state.socketConnected
-        }
-    }
+      connected() {
+          return this.$store.state.socketConnected
+      }
+    },
   };
 </script>
 
