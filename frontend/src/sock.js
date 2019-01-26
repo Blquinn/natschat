@@ -6,12 +6,15 @@ const reConnectTimeout = 2000;
 
 let ws = null;
 
-function connect() {
-    ws = new WebSocket('ws://localhost:5000/ws');
+function connect(host) {
+    const url = `ws://${host}/ws`;
+
+    ws = new WebSocket(url);
 
     ws.onopen = function () {
         console.log('opened ws');
         store.commit('updateConnectionStatus', true);
+        store.commit('setWebsocketClient', ws);
     };
 
     ws.onerror = function (e) {
@@ -25,7 +28,7 @@ function connect() {
         store.commit('updateConnectionStatus', false);
 
         setTimeout(function() {
-            connect();
+            connect(host);
         }, reConnectTimeout)
     };
 
@@ -60,6 +63,7 @@ function connect() {
     };
 }
 
-connect();
-
-export default ws;
+export {
+    ws,
+    connect,
+};

@@ -233,7 +233,7 @@ func (c *Client) handleUnSubMessage(m *SubscriptionMessage) {
 }
 
 func (c *Client) handleChatMessage(m *ChatMessage) {
-	id, _ := uuid.NewV4()
+	id := uuid.NewV4()
 	m.ID = id.String()
 	found := false
 	for s := range c.subs {
@@ -298,11 +298,20 @@ func (c *Client) handleChatMessage(m *ChatMessage) {
 func (c *Client) readPump() {
 	defer func() {
 		c.hub.unregister <- c
-		c.conn.Close()
+		if err := c.conn.Close(); err != nil {
+			log.Errorf("got err while closing websocket connection: %v", err)
+		}
 	}()
 	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
+	if err := c.conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+		log.Errorf("got err while setting read deadline on ws: %v", err)
+	}
+	c.conn.SetPongHandler(func(string) error {
+		if err := c.conn.SetReadDeadline(time.Now().Add(pongWait)); err != nil {
+			log.Warnf("got err while setting read deadline in ponghandler: %v", err)
+		}
+		return nil
+	})
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
@@ -325,15 +334,21 @@ func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.conn.Close()
+		if err := c.conn.Close(); err != nil {
+			log.Errorf("got err while closing websocket connection: %v", err)
+		}
 	}()
 	for {
 		select {
 		case message, ok := <-c.send:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+				log.Errorf("got err wile setting write deadline for websocket msg: %v", err)
+			}
 			if !ok {
 				// The hub closed the channel.
-				c.conn.WriteMessage(websocket.CloseMessage, []byte{})
+				if err := c.conn.WriteMessage(websocket.CloseMessage, []byte{}); err != nil {
+					log.Errorf("got error while writing close message: %v", err)
+				}
 
 				var err error
 				for s := range c.subs {
@@ -344,29 +359,44 @@ func (c *Client) writePump() {
 				return
 			}
 
-			w, err := c.conn.NextWriter(websocket.TextMessage)
-			if err != nil {
-				return
+			if err := sendWebsocketMessage(c.conn, message, websocket.TextMessage); err != nil {
+				log.Errorf("got err while sending websocket message: %v", err)
 			}
-			w.Write(message)
 
 			// Add queued chat messages to the current websocket message.
 			n := len(c.send)
 			for i := 0; i < n; i++ {
-				w.Write(newline)
-				w.Write(<-c.send)
-			}
-
-			if err := w.Close(); err != nil {
-				return
+				if err := sendWebsocketMessage(c.conn, <-c.send, websocket.TextMessage); err != nil {
+					log.Errorf("got err while sending websocket msg: %v", err)
+				}
 			}
 		case <-ticker.C:
-			c.conn.SetWriteDeadline(time.Now().Add(writeWait))
+			if err := c.conn.SetWriteDeadline(time.Now().Add(writeWait)); err != nil {
+				log.Errorf("got err while setting write deadline on websocket: %v", err)
+			}
 			if err := c.conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				log.Errorf("got err while sending ping message over websocket: %v", err)
 				return
 			}
 		}
 	}
+}
+
+func sendWebsocketMessage(c *websocket.Conn, msg []byte, msgType int) error {
+	w, err := c.NextWriter(msgType)
+	if err != nil {
+		return err
+	}
+
+	if _, err := w.Write(msg); err != nil {
+		return err
+	}
+
+	if err := w.Close(); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // serveWs handles websocket requests from the peer.

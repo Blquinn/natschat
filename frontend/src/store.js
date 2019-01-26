@@ -1,7 +1,5 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
-import http from './httpclient';
-import ws from './sock';
 
 Vue.use(Vuex);
 
@@ -36,6 +34,8 @@ function createUID() {
 
 export default new Vuex.Store({
   state: {
+    ws: null,
+    httpClient: null,
     socketConnected: false,
     socket: null,
     chatRooms: [],
@@ -46,6 +46,14 @@ export default new Vuex.Store({
   mutations: {
     updateConnectionStatus(state, connected) {
       state.socketConnected = connected;
+    },
+
+    setWebsocketClient(state, ws) {
+      state.ws = ws;
+    },
+
+    setHttpClient(state, client) {
+      state.httpClient = client;
     },
 
     addNewChatMessage(state, {roomId, message}) {
@@ -154,7 +162,7 @@ export default new Vuex.Store({
   actions: {
     loadChatRooms: function (context) {
       context.commit('setLoadingRooms', true);
-      http.get('/api/rooms')
+      context.state.httpClient.get('/api/rooms')
         .catch(err => {
           alert('An error occurred while loading chat rooms');
           console.error(err);
@@ -171,7 +179,7 @@ export default new Vuex.Store({
 
       let body = {Name: name};
 
-      http.post('/api/rooms', body)
+      context.state.httpClient.post('/api/rooms', body)
         .catch(err => {
           alert('An error occurred while creating chat room');
           console.error(err);
@@ -180,7 +188,7 @@ export default new Vuex.Store({
         });
     },
     getChatHistoryThenSubscribe: function(context, room) {
-      http.get(`/api/rooms/${room.id}/history`)
+      context.state.httpClient.get(`/api/rooms/${room.id}/history`)
         .catch(err => {
           alert('Error while retrieving chat history');
           console.error(err)
@@ -196,7 +204,7 @@ export default new Vuex.Store({
         })
     },
     subscribeToChannel: function(context, channel) {
-      ws.send(JSON.stringify({
+      context.state.ws.send(JSON.stringify({
         Type: 'SUB',
         Body: {
           Channel: channel,
@@ -204,7 +212,7 @@ export default new Vuex.Store({
       }));
     },
     sendMessage: function(context, {room, messageBody}) {
-      if (ws === null) {
+      if (context.state.ws === null) {
         alert('Websocket not connected');
         return;
       }
@@ -222,7 +230,7 @@ export default new Vuex.Store({
         },
       });
 
-      ws.send(JSON.stringify({
+      context.state.ws.send(JSON.stringify({
         Type: 'CHAT',
         Body: {
           Channel: room.channel,

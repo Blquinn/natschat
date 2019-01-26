@@ -3,7 +3,7 @@ debug: true
 environment: local
 
 server:
-  address: :5000
+  address: :5001
 
 db:
   host: localhost

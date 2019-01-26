@@ -29,7 +29,7 @@ func NewChatService(db *sqlx.DB) *ChatService {
 }
 
 func (cs *ChatService) CreateChatRoom(name string) (models.ChatRoom, *utils.APIError) {
-	id, _ := uuid.NewV4()
+	id := uuid.NewV4()
 	t := time.Now()
 	_, err := cs.db.Exec(`
 		insert into chat_rooms (id, "name", inserted_at, updated_at)	
@@ -46,10 +46,10 @@ func (cs *ChatService) CreateChatRoom(name string) (models.ChatRoom, *utils.APIE
 	}
 
 	return models.ChatRoom{
-		ID: id.String(),
-		Name: name,
+		ID:         id.String(),
+		Name:       name,
 		InsertedAt: t,
-		UpdatedAt: t,
+		UpdatedAt:  t,
 	}, nil
 
 }

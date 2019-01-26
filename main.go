@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
+	"github.com/nats-io/gnatsd/server"
 	"github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/go-playground/validator.v9"
@@ -13,10 +14,12 @@ import (
 	"natschat/services"
 	"natschat/utils/auth"
 	"os"
+	"time"
 )
 
 var (
-	configPath = flag.String("config", "", "config.yml path")
+	configPath      = flag.String("config", "", "config.yml path")
+	gnatsConfigPath = flag.String("gnatsdConf", "gnatsd.conf", "gnatsd config.conf path")
 
 	validate *validator.Validate
 )
@@ -46,10 +49,19 @@ func main() {
 
 	validate = validator.New()
 
+	gnatsOpts, err := server.ProcessConfigFile(*gnatsConfigPath)
+	if err != nil {
+		log.Fatalf("Failed to parse gnatsd config: %v", err)
+	}
+
+	runGnatsServer(cfg, gnatsOpts)
+
 	ns, err := nats.Connect(nats.DefaultURL)
 	if err != nil {
 		panic(err)
 	}
+
+	log.Infoln("Connected to gnatsd")
 
 	gnats := newGnats(ns)
 
@@ -99,4 +111,28 @@ func getDBConn(cfg *config.Config) *sqlx.DB {
 			cfg.DB.Host, cfg.DB.Port, cfg.DB.User, cfg.DB.Password, cfg.DB.Name, cfg.DB.SSLMode)
 	}
 	return sqlx.MustConnect("postgres", url)
+}
+
+func runGnatsServer(config *config.Config, opts *server.Options) *server.Server {
+	//opts := &defaultGnatsOptions
+	// Optionally override for individual debugging of tests
+	opts.Logtime = true
+	opts.NoLog = !config.Gnatsd.Log
+	opts.Trace = config.Gnatsd.Trace
+	opts.Debug = config.Gnatsd.Debug
+
+	s := server.New(opts)
+
+	if config.Debug {
+		s.ConfigureLogger()
+	}
+
+	// Run server in Go routine.
+	go s.Start()
+
+	// Wait for accept loop(s) to be started
+	if !s.ReadyForConnections(10 * time.Second) {
+		panic("Unable to start NATS Server in Go Routine")
+	}
+	return s
 }

@@ -1,5 +1,5 @@
 <template>
-    <div id="chat-container">
+    <div class="chat-container">
         <div class="active" v-if="!room.loading">
             <h1>{{room.name}}</h1>
             <div id="chat-log">
@@ -57,6 +57,11 @@
 </script>
 
 <style scoped>
+    .chat-container {
+        display: inline-block;
+        margin-right: 2em;
+    }
+
     #chat-log {
         height: 20em;
         width: 30em;

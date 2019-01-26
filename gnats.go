@@ -21,8 +21,8 @@ type Subscription struct {
 
 func newSubscription(gnats *Gnats, sub *nats.Subscription, client *Client) *Subscription {
 	return &Subscription{
-		gnats: gnats,
-		sub: sub,
+		gnats:   gnats,
+		sub:     sub,
 		clients: map[*Client]bool{client: true},
 	}
 }
@@ -71,10 +71,6 @@ func (g *Gnats) Publish(ch string, msg []byte) error {
 }
 
 func (g *Gnats) Subscribe(ch string, client *Client) (*Subscription, error) {
-	s, err := g.conn.Subscribe(ch, g.subscriptionHandler)
-	if err != nil {
-		return nil, err
-	}
 
 	g.mu.RLock()
 	sub, f := g.subs[ch]
@@ -85,16 +81,19 @@ func (g *Gnats) Subscribe(ch string, client *Client) (*Subscription, error) {
 		sub.clients[client] = true
 		log.Debugf("Successfully subscribed client %s to channel %s", client.conn.RemoteAddr(), sub.sub.Subject)
 		sub.mu.Unlock()
-	} else {
-		newSub := newSubscription(g, s, client)
-		g.mu.Lock()
-		g.subs[ch] = newSub
-		g.mu.Unlock()
-		log.Debugf("Successfully subscribed client %s to channel %s", client.conn.RemoteAddr(), newSub.sub.Subject)
-		return newSub, nil
+		return sub, nil
 	}
 
-	return sub, nil
+	s, err := g.conn.Subscribe(ch, g.subscriptionHandler)
+	if err != nil {
+		return nil, err
+	}
+	newSub := newSubscription(g, s, client)
+	g.mu.Lock()
+	g.subs[ch] = newSub
+	g.mu.Unlock()
+	log.Debugf("Successfully subscribed client %s to channel %s", client.conn.RemoteAddr(), newSub.sub.Subject)
+	return newSub, nil
 }
 
 func (g *Gnats) subscriptionHandler(msg *nats.Msg) {
