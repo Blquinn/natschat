@@ -26,12 +26,12 @@ type authError struct {
 	Err         error
 }
 
-func GetUserOrPanic(c *gin.Context) models.User {
+func GetUserOrPanic(c *gin.Context) models.JWTUser {
 	user, exists := c.Get("user")
 	if !exists {
 		panic("`user` does not exist in gin context.")
 	}
-	userCasted, ok := user.(models.User)
+	userCasted, ok := user.(models.JWTUser)
 	if !ok {
 		panic("failed to cast context user to models.User")
 	}

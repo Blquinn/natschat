@@ -6,14 +6,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/satori/go.uuid"
+	"natschat/services"
+	"natschat/utils"
 	"net/http"
 	"time"
 
 	log "github.com/sirupsen/logrus"
 
-	"github.com/davecgh/go-spew/spew"
-
-	"gopkg.in/go-playground/validator.v9"
+	"gopkg.in/go-playground/validator.v8"
 
 	"github.com/gorilla/websocket"
 )
@@ -61,17 +61,23 @@ type Client struct {
 	// The websocket connection.
 	conn *websocket.Conn
 
+	cs services.IChatService
+
+	validate *validator.Validate
+
 	// Buffered channel of outbound messages.
 	send chan []byte
 }
 
-func newClient(hub *Hub, gnats *Gnats, conn *websocket.Conn) *Client {
+func newClient(hub *Hub, gnats *Gnats, conn *websocket.Conn, cs services.IChatService) *Client {
 	return &Client{
-		hub:   hub,
-		gnats: gnats,
-		subs:  make(map[*Subscription]bool),
-		conn:  conn,
-		send:  make(chan []byte, 100),
+		hub:      hub,
+		gnats:    gnats,
+		subs:     make(map[*Subscription]bool),
+		conn:     conn,
+		cs:       cs,
+		validate: validator.New(&validator.Config{TagName: "validate"}),
+		send:     make(chan []byte, 100),
 	}
 }
 
@@ -98,7 +104,7 @@ func (c *Client) handleMessage(bts []byte) {
 		c.send <- []byte("invalid msg body")
 	}
 
-	err = validate.Struct(msg)
+	err = c.validate.Struct(msg)
 	if err != nil {
 		errs, ok := err.(validator.ValidationErrors)
 		if !ok {
@@ -107,16 +113,7 @@ func (c *Client) handleMessage(bts []byte) {
 			return
 		}
 
-		ves := make([]ValidationError, len(errs))
-		for i, e := range errs {
-			ves[i] = ValidationError{
-				Field:   e.Field(),
-				Message: fmt.Sprintf("%v", e),
-			}
-			e.Field()
-		}
-
-		spew.Dump(errs)
+		ves := utils.FormatValidationErrors(errs)
 
 		m.Body = msg
 		errMsg := Message{
@@ -397,21 +394,4 @@ func sendWebsocketMessage(c *websocket.Conn, msg []byte, msgType int) error {
 	}
 
 	return nil
-}
-
-// serveWs handles websocket requests from the peer.
-func serveWs(hub *Hub, gnats *Gnats, w http.ResponseWriter, r *http.Request) {
-	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil {
-		log.Println(err)
-		return
-	}
-
-	client := newClient(hub, gnats, conn)
-	client.hub.register <- client
-
-	// Allow collection of memory referenced by the caller by doing all work in
-	// new goroutines.
-	go client.writePump()
-	go client.readPump()
 }

@@ -1,5 +1,7 @@
 import Vue from 'vue';
 import Vuex from 'vuex';
+import HttpClient from "./httpclient";
+import {connect} from "./sock";
 
 Vue.use(Vuex);
 
@@ -160,6 +162,17 @@ export default new Vuex.Store({
 
 
   actions: {
+    loginAndConnect: function(context, {host, username, password}) {
+      const client = new HttpClient(host);
+      client.post('/login', {username, password})
+        .catch(err => {
+          alert('Login failed');
+          console.error('Login failed', err);
+        }).then(res => {
+          context.commit('setHttpClient', client);
+          connect(host);
+        });
+    },
     loadChatRooms: function (context) {
       context.commit('setLoadingRooms', true);
       context.state.httpClient.get('/api/rooms')

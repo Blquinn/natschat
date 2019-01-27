@@ -8,17 +8,28 @@
         <div id="main" v-if="connected">
             <router-view/>
         </div>
-        <div id="setup" v-else>
-            <input type="text" v-model="host" v-on:keyup.enter="startConnection()"/>
+        <!--TODO: Move form into component-->
+        <div id="setup" v-else v-on:keyup.enter="startConnection()">
+            <div>
+                <label for="host-txt">Host: </label>
+                <input id="host-txt" type="text" v-model="host" />
+            </div>
+
+            <div>
+                <label for="username-txt">Username: </label>
+                <input id="username-txt" type="text" v-model="username" />
+            </div>
+
+            <div>
+                <label for="password-txt">Password: </label>
+                <input id="password-txt" type="text" v-model="password" />
+            </div>
             <button v-on:click="startConnection()">Connect</button>
         </div>
     </div>
 </template>
 
 <script>
-  import HttpClient from "./httpclient";
-  import {connect} from './sock';
-
   export default {
     computed: {
       connected() {
@@ -28,6 +39,8 @@
     data: function() {
       return {
         host: 'localhost:5000',
+        username: 'ben',
+        password: 'password',
       }
     },
     methods: {
@@ -38,8 +51,10 @@
         }
 
         console.log(`Setting host to ${this.host}`);
-        connect(this.host);
-        this.$store.commit('setHttpClient', new HttpClient(this.host));
+        const host = this.host;
+        const username = this.username;
+        const password = this.password;
+        this.$store.dispatch('loginAndConnect', {host, username, password});
       }
     }
   };

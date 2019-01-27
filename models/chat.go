@@ -1,52 +1,58 @@
 package models
 
-import "time"
+import (
+	"github.com/jinzhu/gorm"
+	"time"
+)
 
 type ChatRoom struct {
-	ID string `db:"id"`
-	InsertedAt time.Time `db:"inserted_at"`
-	UpdatedAt time.Time `db:"updated_at"`
+	gorm.Model
 
-	Name string `db:"name"`
+	Name          string              `gorm:"unique;not null"`
+	Owner         *User               `gorm:"association_foreignkey:ID"`
+	OwnerID       uint                `gorm:"not null;"`
+	Subscriptions []*ChatSubscription `gorm:"foreignkey:ChatRoomID"`
+	Messages      []*ChatMessage      `gorm:"foreignkey:ChatRoomID"`
 }
 
 type ChatSubscription struct {
-	ID string `db:"id"`
-	InsertedAt time.Time `db:"inserted_at"`
-	UpdatedAt time.Time `db:"updated_at"`
+	gorm.Model
 
-	UserID string `db:"user_id"`
-	ChatRoomID string `db:"chat_room_id"`
+	User       *User     `gorm:"association_foreignkey:ID"`
+	UserID     string    `gorm:"not null;"`
+	ChatRoom   *ChatRoom `gorm:"association_foreignkey:ID"`
+	ChatRoomID string    `gorm:"not null;"`
 }
 
 type ChatMessage struct {
-	ID string `db:"id"`
-	InsertedAt time.Time `db:"inserted_at"`
-	UpdatedAt time.Time `db:"updated_at"`
+	gorm.Model
 
-	Body string `db:"body"`
-	UserID string `db:"user_id"`
-	ChatRoomID string `db:"chat_room_id"`
-	MessageType string `db:"message_type"`
-}
-
-type ChatMessagePlusUser struct {
-	ID string `db:"id"`
-	InsertedAt time.Time `db:"inserted_at"`
-	UpdatedAt time.Time `db:"updated_at"`
-
-	Body string `db:"body"`
-	UserID string `db:"user_id"`
-	ChatRoomID string `db:"chat_room_id"`
-	MessageType string `db:"message_type"`
-
-	User User `db:"user"`
+	PublicID    string    `gorm:"not null;"`
+	Body        string    `gorm:"not null;"`
+	User        *User     `gorm:"association_foreignkey:ID"`
+	UserID      string    `gorm:"not null;"`
+	ChatRoom    *ChatRoom `gorm:"association_foreignkey:ID"`
+	ChatRoomID  string    `gorm:"not null;"`
+	MessageType string    `gorm:"not null;"`
 }
 
 type ChatMessageDTO struct {
-	ID string
-	InsertedAt time.Time
-	Body string
+	ID         string // PublicID
+	ChatRoomID string // PublicID
+	CreatedAt  time.Time
+	Body       string
 
 	User PublicUserDTO
+}
+
+func NewChatMessageDTO(id, roomID, username, body string, createdAt time.Time) ChatMessageDTO {
+	return ChatMessageDTO{
+		ID:         id,
+		ChatRoomID: roomID,
+		CreatedAt:  createdAt,
+		Body:       body,
+		User: PublicUserDTO{
+			Username: username,
+		},
+	}
 }

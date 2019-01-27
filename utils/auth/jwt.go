@@ -40,23 +40,24 @@ func (j *JWT) AuthenticateUserJWT(c *gin.Context) {
 	c.Set("user", user)
 }
 
-func (j *JWT) userIsAuthenticatedJWT(tokenString string) (models.User, bool) {
-	user, err := j.ParseAndValidateJWT(tokenString)
-	if err != nil {
-		return models.User{}, false
+func (j *JWT) userIsAuthenticatedJWT(tokenString string) (models.JWTUser, bool) {
+	var u models.JWTUser
+	var err error
+	if u, err = j.ParseAndValidateJWT(tokenString); err != nil {
+		return u, false
 	}
-	return user, true
+	return u, true
 }
 
 // ParseAndValidateJWT returns an error or a successfully parsed JWT Token
 // func ParseAndValidateJWT(tokenString string) (*jwt.Token, error) {
-func (j *JWT) ParseAndValidateJWT(tokenString string) (models.User, error) {
+func (j *JWT) ParseAndValidateJWT(tokenString string) (models.JWTUser, error) {
 
 	// Parse takes the token string and a function for looking up the key. The latter is especially
 	// useful if you use multiple keys for your application.  The standard is to use 'kid' in the
 	// head of the token to identify which key to use, but the parsed token (head and claims) is provided
 	// to the callback, providing flexibility.
-	var user = models.User{}
+	var user = models.JWTUser{}
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		// Don't forget to validate the alg is what you expect:
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -81,28 +82,28 @@ func (j *JWT) ParseAndValidateJWT(tokenString string) (models.User, error) {
 		return user, err
 	}
 
-	userID, okID := claims["user_id"].(string)
+	userID, okID := claims["user_id"].(float64)
 	email, okEmail := claims["email"].(string)
 	username, okUsername := claims["username"].(string)
 
 	if !(okID && okEmail && okUsername) {
 		return user, errors.New("failed to parse jwt claims")
 	}
-	user.ID = userID
+	user.ID = uint(userID)
 	user.Email = email
 	user.Username = username
 	return user, nil
 }
 
 // creates a jwtString
-func (j *JWT) CreateJWT(user *models.User) (string, error) {
+func (j *JWT) CreateJWT(user models.User) (string, error) {
 	// Create a new token object, specifying signing method and the claims
 	// you would like it to contain.
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email":       user.Email,
-		"username":    user.Username,
-		"user_id":     user.ID,
-		"exp":         time.Now().In(time.UTC).Add(time.Duration(j.config.JWT.ExpirySeconds) * time.Second).Unix(),
+		"email":    user.Email,
+		"username": user.Username,
+		"user_id":  uint32(user.ID),
+		"exp":      time.Now().In(time.UTC).Add(time.Duration(j.config.JWT.ExpirySeconds) * time.Second).Unix(),
 	})
 
 	// Sign and get the complete encoded token as a string using the secret

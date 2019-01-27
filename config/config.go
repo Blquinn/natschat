@@ -7,6 +7,7 @@ import (
 
 const (
 	EnvironmentLocal = "local"
+	EnvironmentTest  = "test"
 )
 
 type Config struct {
@@ -19,12 +20,14 @@ type Config struct {
 	} `yaml:"server"`
 
 	DB struct {
-		Host     string `yaml:"host"`
-		Port     int    `yaml:"port"`
-		User     string `yaml:"user"`
-		Password string `yaml:"password"`
-		Name     string `yaml:"name"`
-		SSLMode  string `yaml:"ssl_mode"`
+		Host         string `yaml:"host"`
+		Port         int    `yaml:"port"`
+		User         string `yaml:"user"`
+		Password     string `yaml:"password"`
+		Name         string `yaml:"name"`
+		SSLMode      string `yaml:"ssl_mode"`
+		MaxIdleConns int    `yaml:"max_idle_conns"`
+		MaxOpenConns int    `yaml:"max_open_conns"`
 	} `yaml:"db"`
 
 	JWT struct {
@@ -52,4 +55,51 @@ func Parse(path string) (*Config, error) {
 		return nil, err
 	}
 	return &cfg, err
+}
+
+func GetTestConfig() *Config {
+	return &Config{
+		Debug:       false,
+		Environment: EnvironmentTest,
+		Server: struct {
+			Address string `yaml:"address"`
+		}{
+			Address: "localhost:5000",
+		},
+		DB: struct {
+			Host         string `yaml:"host"`
+			Port         int    `yaml:"port"`
+			User         string `yaml:"user"`
+			Password     string `yaml:"password"`
+			Name         string `yaml:"name"`
+			SSLMode      string `yaml:"ssl_mode"`
+			MaxIdleConns int    `yaml:"max_idle_conns"`
+			MaxOpenConns int    `yaml:"max_open_conns"`
+		}{
+			Host:         "localhost",
+			Port:         5432,
+			User:         "ben",
+			Password:     "password",
+			Name:         "chat_test_db",
+			SSLMode:      "disable",
+			MaxIdleConns: 2,
+			MaxOpenConns: 20,
+		},
+		JWT: struct {
+			SecretKey     string `yaml:"secret_key"`
+			ExpirySeconds int    `yaml:"expiry_seconds"`
+		}{
+			SecretKey:     "replace_me",
+			ExpirySeconds: 9999999,
+		},
+		Gnatsd: struct {
+			Log   bool `yaml:"log"`
+			Debug bool `yaml:"debug"`
+			Trace bool `yaml:"trace"`
+		}{
+			Log:   false,
+			Debug: false,
+			Trace: false,
+		},
+	}
 }

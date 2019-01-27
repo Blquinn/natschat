@@ -4,13 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/jmoiron/sqlx"
-	_ "github.com/lib/pq"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"github.com/nats-io/gnatsd/server"
 	"github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
-	"gopkg.in/go-playground/validator.v9"
 	"natschat/config"
+	"natschat/models"
 	"natschat/services"
 	"natschat/utils/auth"
 	"os"
@@ -20,8 +21,6 @@ import (
 var (
 	configPath      = flag.String("config", "", "config.yml path")
 	gnatsConfigPath = flag.String("gnatsdConf", "gnatsd.conf", "gnatsd config.conf path")
-
-	validate *validator.Validate
 )
 
 func init() {
@@ -33,6 +32,8 @@ func init() {
 
 func main() {
 	flag.Parse()
+
+	binding.Validator = models.NewDefaultValidator()
 
 	cfg, err := getConfig()
 	if err != nil {
@@ -46,8 +47,6 @@ func main() {
 	} else {
 		gin.SetMode(gin.ReleaseMode)
 	}
-
-	validate = validator.New()
 
 	gnatsOpts, err := server.ProcessConfigFile(*gnatsConfigPath)
 	if err != nil {
@@ -70,7 +69,16 @@ func main() {
 
 	log.Println("listening on " + cfg.Server.Address)
 
-	db := getDBConn(cfg)
+	db, err := setupDB(cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Errorf("Error while closing database connection: %v", err)
+		}
+	}()
+
 	userService := services.NewUserService(db)
 	chatService := services.NewChatService(db)
 	jwt := auth.NewJWT(cfg)
@@ -102,7 +110,7 @@ func getConfig() (*config.Config, error) {
 	return cfg, nil
 }
 
-func getDBConn(cfg *config.Config) *sqlx.DB {
+func setupDB(cfg *config.Config) (*gorm.DB, error) {
 	var url string
 	if cfg.DB.Host == "" {
 		url = "host=localhost port=5432 user=ben password=password dbname=chat sslmode=disable"
@@ -110,7 +118,24 @@ func getDBConn(cfg *config.Config) *sqlx.DB {
 		url = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 			cfg.DB.Host, cfg.DB.Port, cfg.DB.User, cfg.DB.Password, cfg.DB.Name, cfg.DB.SSLMode)
 	}
-	return sqlx.MustConnect("postgres", url)
+	db, err := gorm.Open("postgres", url)
+	if err != nil {
+		return db, err
+	}
+
+	if cfg.DB.MaxIdleConns != 0 {
+		db.DB().SetMaxIdleConns(cfg.DB.MaxIdleConns)
+	}
+
+	if cfg.DB.MaxOpenConns != 0 {
+		db.DB().SetMaxOpenConns(cfg.DB.MaxOpenConns)
+	}
+
+	if cfg.Debug {
+		db.LogMode(true)
+	}
+
+	return db, nil
 }
 
 func runGnatsServer(config *config.Config, opts *server.Options) *server.Server {

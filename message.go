@@ -1,5 +1,7 @@
 package main
 
+import "natschat/utils"
+
 const (
 	MessageTypeSub   = "SUB"
 	MessageTypeUnSub = "UNSUB"
@@ -12,8 +14,8 @@ const (
 	MessageTypeChatAck = "CHATACK"
 
 	MessageTypeValidationErr = "BAD"
-	MessageTypeForbiddenErr = "FORBIDDEN"
-	MessageTypeServerErr = "ERR"
+	MessageTypeForbiddenErr  = "FORBIDDEN"
+	MessageTypeServerErr     = "ERR"
 )
 
 var (
@@ -34,26 +36,15 @@ type SubscriptionMessage struct {
 }
 
 type ChatMessage struct {
-	ID string
+	ID       string
 	ClientID string `validate:"required"`
-	Channel string `validate:"required"`
-	Content string `validate:"required"`
+	Channel  string `validate:"required"`
+	Content  string `validate:"required"`
 }
-
-//type ChatAckMessage struct {
-//	Accepted bool `validate:"required"`
-//}
-
-// Errors
 
 type ValidationErrorMessage struct {
 	OriginalMessage string
-	Errors          []ValidationError
-}
-
-type ValidationError struct {
-	Field   string
-	Message string
+	Errors          []utils.ValidationError
 }
 
 type ServerErrorMessage struct {

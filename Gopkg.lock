@@ -2,14 +2,6 @@
 
 
 [[projects]]
-  digest = "1:ffe9824d294da03b391f44e1ae8281281b4afc1bdaa9588c9097785e3af10cec"
-  name = "github.com/davecgh/go-spew"
-  packages = ["spew"]
-  pruneopts = "UT"
-  revision = "8991bc29aa16c548c550c7ff78260e27b9ab7c73"
-  version = "v1.1.1"
-
-[[projects]]
   digest = "1:76dc72490af7174349349838f2fe118996381b31ea83243812a97e5a0fd5ed55"
   name = "github.com/dgrijalva/jwt-go"
   packages = ["."]
@@ -47,23 +39,18 @@
   version = "v1.3.0"
 
 [[projects]]
-  digest = "1:e1ff887e232b2d8f4f7c7db15a5fac7be418025afc4dda53c59c765dbb5aa6b4"
-  name = "github.com/go-playground/locales"
+  digest = "1:692b29784ba0a25c33a77cb4c2594e2ffc1e72fc66e17e87503e03a29cb227c5"
+  name = "github.com/golang-migrate/migrate"
   packages = [
     ".",
-    "currency",
+    "database",
+    "database/postgres",
+    "source",
+    "source/file",
   ]
   pruneopts = "UT"
-  revision = "f63010822830b6fe52288ee52d5a1151088ce039"
-  version = "v0.12.1"
-
-[[projects]]
-  digest = "1:e022cf244bcac1b6ef933f1a2e0adcf6a6dfd7b872d8d41e4d4179bb09a87cbc"
-  name = "github.com/go-playground/universal-translator"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "b32fa301c9fe55953584134cb6853a13c87ec0a1"
-  version = "v0.16.0"
+  revision = "4937cd088f7c7193ee59b319c1c2caa7482aae8e"
+  version = "v3.5.4"
 
 [[projects]]
   digest = "1:6ba96a683441984156b05568b9d31dbc846d3336d21ac220fcc819a367dc1f65"
@@ -81,15 +68,23 @@
   version = "v1.4.0"
 
 [[projects]]
-  digest = "1:6c41d4f998a03b6604227ccad36edaed6126c397e5d78709ef4814a1145a6757"
-  name = "github.com/jmoiron/sqlx"
+  digest = "1:7e63b12cdd7bef2c411d736cb67e28134d39f5d236aa1bfb8f3d55e3ad709eca"
+  name = "github.com/jinzhu/gorm"
   packages = [
     ".",
-    "reflectx",
+    "dialects/postgres",
   ]
   pruneopts = "UT"
-  revision = "d161d7a76b5661016ad0b085869f77fd410f3e6a"
-  version = "v1.2.0"
+  revision = "472c70caa40267cb89fd8facb07fe6454b578626"
+  version = "v1.9.2"
+
+[[projects]]
+  branch = "master"
+  digest = "1:fd97437fbb6b7dce04132cf06775bd258cce305c44add58eb55ca86c6c325160"
+  name = "github.com/jinzhu/inflection"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "04140366298a54a039076d798123ffa108fff46c"
 
 [[projects]]
   digest = "1:be97e109f627d3ba8edfef50c9c74f0d0c17cbe3a2e924a8985e4804a894f282"
@@ -108,18 +103,11 @@
   version = "v1.0.1"
 
 [[projects]]
-  digest = "1:6782ffc812e8e700e6952ede1e60487ff1fd9da489eff762985be662a7cfc431"
-  name = "github.com/leodido/go-urn"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "70078a794e8ea4b497ba7c19a78cd60f90ccf0f4"
-  version = "v1.1.0"
-
-[[projects]]
-  digest = "1:8ef506fc2bb9ced9b151dafa592d4046063d744c646c1bbe801982ce87e4bc24"
+  digest = "1:b18ffc558326ebaed3b4a175617f1e12ed4e3f53d6ebfe5ba372a3de16d22278"
   name = "github.com/lib/pq"
   packages = [
     ".",
+    "hstore",
     "oid",
   ]
   pruneopts = "UT"
@@ -240,20 +228,12 @@
   revision = "82a175fd1598e8a172e58ebdf5ed262bb29129e5"
 
 [[projects]]
-  digest = "1:1b4724d3c8125f6044925f02b485b74bfec9905cbf579d95aafd1a6c8f8447d3"
+  digest = "1:cbc72c4c4886a918d6ab4b95e347ffe259846260f99ebdd8a198c2331cf2b2e9"
   name = "gopkg.in/go-playground/validator.v8"
   packages = ["."]
   pruneopts = "UT"
-  revision = "5f57d2222ad794d0dffb07e664ea05e2ee07d60c"
-  version = "v8.18.1"
-
-[[projects]]
-  digest = "1:8abc978192c2fca4d6a74260c3a8f4aa34d25bd3c548c938745b91b8b20cda1d"
-  name = "gopkg.in/go-playground/validator.v9"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "0277b12d53df79c9dbf7311cb07fa9c81ed621bb"
-  version = "v9.24.0"
+  revision = "5f1438d3fca68893a817e4a66806cea46a9e4ebf"
+  version = "v8.18.2"
 
 [[projects]]
   digest = "1:cacb98d52c60c337c2ce95a7af83ba0313a93ce5e73fa9e99a96aff70776b9d3"
@@ -266,19 +246,23 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/davecgh/go-spew/spew",
     "github.com/dgrijalva/jwt-go",
     "github.com/gin-contrib/cors",
     "github.com/gin-gonic/gin",
+    "github.com/gin-gonic/gin/binding",
+    "github.com/golang-migrate/migrate",
+    "github.com/golang-migrate/migrate/database/postgres",
+    "github.com/golang-migrate/migrate/source/file",
     "github.com/gorilla/websocket",
-    "github.com/jmoiron/sqlx",
+    "github.com/jinzhu/gorm",
+    "github.com/jinzhu/gorm/dialects/postgres",
     "github.com/lib/pq",
     "github.com/nats-io/gnatsd/server",
     "github.com/nats-io/go-nats",
     "github.com/palantir/stacktrace",
     "github.com/satori/go.uuid",
     "github.com/sirupsen/logrus",
-    "gopkg.in/go-playground/validator.v9",
+    "gopkg.in/go-playground/validator.v8",
     "gopkg.in/yaml.v2",
   ]
   solver-name = "gps-cdcl"
