@@ -39,20 +39,6 @@
   version = "v1.3.0"
 
 [[projects]]
-  digest = "1:692b29784ba0a25c33a77cb4c2594e2ffc1e72fc66e17e87503e03a29cb227c5"
-  name = "github.com/golang-migrate/migrate"
-  packages = [
-    ".",
-    "database",
-    "database/postgres",
-    "source",
-    "source/file",
-  ]
-  pruneopts = "UT"
-  revision = "4937cd088f7c7193ee59b319c1c2caa7482aae8e"
-  version = "v3.5.4"
-
-[[projects]]
   digest = "1:6ba96a683441984156b05568b9d31dbc846d3336d21ac220fcc819a367dc1f65"
   name = "github.com/golang/protobuf"
   packages = ["proto"]
@@ -164,17 +150,6 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  digest = "1:c497b54ed4be2a7753ae4bfc7629f7168530f22e70ede8badd2aae657ba472b4"
-  name = "github.com/palantir/stacktrace"
-  packages = [
-    ".",
-    "cleanpath",
-  ]
-  pruneopts = "UT"
-  revision = "78658fd2d1772b755720ed8c44367d11ee5380d6"
-
-[[projects]]
   digest = "1:274f67cb6fed9588ea2521ecdac05a6d62a8c51c074c1fccc6a49a40ba80e925"
   name = "github.com/satori/go.uuid"
   packages = ["."]
@@ -250,16 +225,12 @@
     "github.com/gin-contrib/cors",
     "github.com/gin-gonic/gin",
     "github.com/gin-gonic/gin/binding",
-    "github.com/golang-migrate/migrate",
-    "github.com/golang-migrate/migrate/database/postgres",
-    "github.com/golang-migrate/migrate/source/file",
     "github.com/gorilla/websocket",
     "github.com/jinzhu/gorm",
     "github.com/jinzhu/gorm/dialects/postgres",
     "github.com/lib/pq",
     "github.com/nats-io/gnatsd/server",
     "github.com/nats-io/go-nats",
-    "github.com/palantir/stacktrace",
     "github.com/satori/go.uuid",
     "github.com/sirupsen/logrus",
     "gopkg.in/go-playground/validator.v8",

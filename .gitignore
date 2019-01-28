@@ -2,7 +2,7 @@
 
 # The binary
 natschat
-vendor/
+# vendor/
 
 # Editor directories and files
 .idea

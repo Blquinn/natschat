@@ -52,9 +52,9 @@
   name = "github.com/nats-io/go-nats"
   version = "1.7.0"
 
-[[constraint]]
-  branch = "master"
-  name = "github.com/palantir/stacktrace"
+# [[constraint]]
+#   branch = "master"
+#   name = "github.com/palantir/stacktrace"
 
 [[constraint]]
   name = "github.com/satori/go.uuid"
