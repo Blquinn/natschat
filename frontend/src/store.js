@@ -163,13 +163,13 @@ export default new Vuex.Store({
 
   actions: {
     loginAndConnect: function(context, {host, username, password}) {
-      const client = new HttpClient(host);
+      const client = new HttpClient(host, '');
       client.post('/login', {username, password})
         .catch(err => {
           alert('Login failed');
           console.error('Login failed', err);
         }).then(res => {
-          context.commit('setHttpClient', client);
+          context.commit('setHttpClient', new HttpClient(host, res.data.token));
           connect(host);
         });
     },

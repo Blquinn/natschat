@@ -26,7 +26,7 @@ func (u User) ToDTO() UserDTO {
 }
 
 func (u User) ToPublicDTO() PublicUserDTO {
-	return PublicUserDTO{Username: u.Username}
+	return NewPublicUserDTO(u.PublicID, u.Username)
 }
 
 type JWTUser struct {
@@ -36,7 +36,7 @@ type JWTUser struct {
 }
 
 type UserDTO struct {
-	ID        string // PublicID
+	ID        string // ID
 	Username  string
 	Email     string
 	FirstName string
@@ -44,5 +44,13 @@ type UserDTO struct {
 }
 
 type PublicUserDTO struct {
+	ID       string // ID
 	Username string
+}
+
+func NewPublicUserDTO(id, username string) PublicUserDTO {
+	return PublicUserDTO{
+		ID:       id,
+		Username: username,
+	}
 }

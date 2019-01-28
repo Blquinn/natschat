@@ -76,7 +76,7 @@ func (s *Server) serveWs(w http.ResponseWriter, r *http.Request) {
 func (s *Server) registerUser(c *gin.Context) {
 	var ur models.CreateUserRequest
 	if err := c.ShouldBindJSON(&ur); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"detail": err.Error()})
+		utils.HandleValidationError(c, err)
 		return
 	}
 
@@ -98,7 +98,7 @@ func (s *Server) loginHandler(c *gin.Context) {
 
 	user, err := s.userService.GetUserByUsername(body.Username)
 	if err != nil {
-		c.AbortWithStatusJSON(http.StatusNotFound, gin.H{"detail": "User not found."})
+		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"detail": "Incorrect username or password."})
 		return
 	}
 

@@ -10,7 +10,7 @@ import (
 )
 
 type IChatService interface {
-	CreateChatRoom(name string, userID uint) (models.ChatRoom, *utils.APIError)
+	CreateChatRoom(name string, userID uint) (models.ChatRoomDTO, *utils.APIError)
 	ListChatRooms() ([]models.ChatRoom, *utils.APIError)
 	GetChatHistory(roomID string) ([]models.ChatMessageDTO, *utils.APIError)
 	SaveChatMessage(message models.ChatMessage) (models.ChatMessage, error)
@@ -28,18 +28,16 @@ func NewChatService(db *gorm.DB) *ChatService {
 	}
 }
 
-func (cs *ChatService) CreateChatRoom(name string, userID uint) (models.ChatRoom, *utils.APIError) {
-	r := models.ChatRoom{
-		Name:    name,
-		OwnerID: userID,
-	}
+func (cs *ChatService) CreateChatRoom(name string, userID uint) (models.ChatRoomDTO, *utils.APIError) {
+	var rd models.ChatRoomDTO
+	r := models.NewChatRoom(name, userID)
 	if err := cs.db.Create(&r).Error; err != nil {
 		if isDuplicateError(err) {
-			return r, utils.NewPublicError(err, "A chat room with that name already exists.", http.StatusBadRequest)
+			return rd, utils.NewPublicError(err, "A chat room with that name already exists.", http.StatusBadRequest)
 		}
-		return r, utils.NewPrivateError(err)
+		return rd, utils.NewPrivateError(err)
 	}
-	return r, nil
+	return models.NewChatRoomDTO(r.Name, r.PublicID), nil
 }
 
 func (cs *ChatService) ListChatRooms() ([]models.ChatRoom, *utils.APIError) {
@@ -52,13 +50,16 @@ func (cs *ChatService) ListChatRooms() ([]models.ChatRoom, *utils.APIError) {
 
 func (cs *ChatService) GetChatHistory(roomID string) ([]models.ChatMessageDTO, *utils.APIError) {
 	var msgs []models.ChatMessage
-	if err := cs.db.Preload("User").Where("chat_room_id = ?", roomID).Find(&msgs).Error; err != nil {
+	if err := cs.db.
+		Preload("User").
+		Preload("ChatRoom").
+		Where("chat_room_id = ?", roomID).Find(&msgs).Error; err != nil {
 		return []models.ChatMessageDTO{}, utils.NewPrivateError(err)
 	}
 
 	msgDTOs := make([]models.ChatMessageDTO, len(msgs))
 	for i, m := range msgs {
-		msgDTOs[i] = models.NewChatMessageDTO(m.PublicID, m.ChatRoomID, m.User.Username, m.Body, m.CreatedAt)
+		msgDTOs[i] = models.NewChatMessageDTO(m.PublicID, m.ChatRoom.PublicID, m.User.PublicID, m.User.Username, m.Body, m.CreatedAt)
 	}
 	return msgDTOs, nil
 }

@@ -5,7 +5,7 @@ type PageResponse struct {
 }
 
 type CreateUserRequest struct {
-	Username  string `json:"username" validate:"required,gt=4,lte=40"`
+	Username  string `json:"username" validate:"required,gte=3,lte=40"`
 	Password  string `json:"password" validate:"required,gte=8"`
 	Email     string `json:"email" validate:"required,email"`
 	FirstName string `json:"firstName" validate:"required"`
