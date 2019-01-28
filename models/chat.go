@@ -3,7 +3,6 @@ package models
 import (
 	"github.com/jinzhu/gorm"
 	"github.com/satori/go.uuid"
-	"time"
 )
 
 type ChatRoom struct {
@@ -22,18 +21,6 @@ func NewChatRoom(name string, ownerID uint) ChatRoom {
 		Name:     name,
 		PublicID: uuid.NewV4().String(),
 		OwnerID:  ownerID,
-	}
-}
-
-type ChatRoomDTO struct {
-	Name string
-	ID   string
-}
-
-func NewChatRoomDTO(name, publicID string) ChatRoomDTO {
-	return ChatRoomDTO{
-		Name: name,
-		ID:   publicID,
 	}
 }
 
@@ -56,40 +43,19 @@ func NewChatSubscription(userID, chatRoomID uint) ChatSubscription {
 type ChatMessage struct {
 	gorm.Model
 
-	PublicID    string    `gorm:"not null;"`
-	Body        string    `gorm:"not null;"`
-	User        *User     `gorm:"association_foreignkey:ID"`
-	UserID      uint      `gorm:"not null;"`
-	ChatRoom    *ChatRoom `gorm:"association_foreignkey:ID"`
-	ChatRoomID  uint      `gorm:"not null;"`
-	MessageType string    `gorm:"not null;"`
+	PublicID   string    `gorm:"not null;"`
+	Body       string    `gorm:"not null;"`
+	User       *User     `gorm:"association_foreignkey:ID"`
+	UserID     uint      `gorm:"not null;"`
+	ChatRoom   *ChatRoom `gorm:"association_foreignkey:ID"`
+	ChatRoomID uint      `gorm:"not null;"`
 }
 
-func NewChatMessage(body, messageType string, userID, chatRoomID uint) ChatMessage {
+func NewChatMessage(body string, userID, chatRoomID uint) ChatMessage {
 	return ChatMessage{
-		PublicID:    uuid.NewV4().String(),
-		Body:        body,
-		UserID:      userID,
-		ChatRoomID:  chatRoomID,
-		MessageType: messageType,
-	}
-}
-
-type ChatMessageDTO struct {
-	ID         string // ID
-	ChatRoomID string // ID
-	CreatedAt  time.Time
-	Body       string
-
-	User PublicUserDTO
-}
-
-func NewChatMessageDTO(id, roomID, userID, username, body string, createdAt time.Time) ChatMessageDTO {
-	return ChatMessageDTO{
-		ID:         id,
-		ChatRoomID: roomID,
-		CreatedAt:  createdAt,
+		PublicID:   uuid.NewV4().String(),
 		Body:       body,
-		User:       NewPublicUserDTO(userID, username),
+		UserID:     userID,
+		ChatRoomID: chatRoomID,
 	}
 }

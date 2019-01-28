@@ -169,8 +169,8 @@ export default new Vuex.Store({
           alert('Login failed');
           console.error('Login failed', err);
         }).then(res => {
-          context.commit('setHttpClient', new HttpClient(host, res.data.token));
-          connect(host);
+          context.commit('setHttpClient', new HttpClient(host, res.data.Token));
+          connect(host, res.data.Token);
         });
     },
     loadChatRooms: function (context) {

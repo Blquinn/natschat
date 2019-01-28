@@ -6,15 +6,23 @@ const reConnectTimeout = 2000;
 
 let ws = null;
 
-function connect(host) {
+function connect(host, token) {
     const url = `ws://${host}/ws`;
+
+    let authenticated = false;
 
     ws = new WebSocket(url);
 
     ws.onopen = function () {
         console.log('opened ws');
-        store.commit('updateConnectionStatus', true);
-        store.commit('setWebsocketClient', ws);
+        ws.send(JSON.stringify({
+            Token: token,
+        }));
+        setTimeout(function () {
+            if (!authenticated) {
+                alert("Websocket authentication failure");
+            }
+        }, 10000)
     };
 
     ws.onerror = function (e) {
@@ -28,7 +36,7 @@ function connect(host) {
         store.commit('updateConnectionStatus', false);
 
         setTimeout(function() {
-            connect(host);
+            connect(host, token);
         }, reConnectTimeout)
     };
 
@@ -42,6 +50,12 @@ function connect(host) {
         }
 
         switch (obj.Type) {
+            case 'AUTHACK':
+                console.log('Got AUTHACK', obj.Body);
+                authenticated = true;
+                store.commit('updateConnectionStatus', true);
+                store.commit('setWebsocketClient', ws);
+                break;
             case 'SUBACK':
                 console.log('Got SUBACK', obj.Body);
                 // store.commit('addNewChatMessage', obj);

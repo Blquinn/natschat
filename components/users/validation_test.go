@@ -1,4 +1,4 @@
-package models
+package users
 
 import (
 	"gopkg.in/go-playground/validator.v8"

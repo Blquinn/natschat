@@ -3,14 +3,18 @@ package main
 import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"github.com/jinzhu/gorm"
-	"github.com/sirupsen/logrus"
-	"log"
+	"time"
+
+	//"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
+	"natschat/components/chat"
+	"natschat/components/users"
 	"natschat/config"
-	"natschat/models"
-	"natschat/services"
-	"natschat/utils"
+	"natschat/utils/apierrs"
 	"natschat/utils/auth"
+	"natschat/utils/pagination"
 	"net/http"
 )
 
@@ -20,8 +24,8 @@ type Server struct {
 	db          *gorm.DB
 	hub         *Hub
 	gnats       *Gnats
-	userService services.IUserService
-	chatService services.IChatService
+	userService *users.Service
+	chatService *chat.Service
 }
 
 func (s *Server) Run() {
@@ -52,7 +56,7 @@ func (s *Server) Run() {
 	})
 	err := r.Run(s.config.Server.Address)
 	if err != nil {
-		logrus.Fatalf("Server died with error: %v", err)
+		log.Fatalf("Server died with error: %v", err)
 	}
 }
 
@@ -64,7 +68,35 @@ func (s *Server) serveWs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	client := newClient(s.hub, s.gnats, conn, s.chatService)
+	u, err := authenticateSocket(conn, s.jwt)
+	if err != nil {
+		if err1 := conn.WriteJSON(Message{
+			Type: MessageTypeUnauthorizedErr,
+			Body: ServerErrorMessage{
+				Message: "Auth error occurred",
+			},
+		}); err != nil {
+			log.Errorf("Got err while sending auth message: %v", err1)
+		}
+		if err2 := conn.Close(); err2 != nil {
+			log.Errorf("Got err while closing socket during auth: %v", err2)
+		}
+		return
+	}
+
+	m := Message{
+		Type: MessageTypeAuthAck,
+		Body: "Authentication success",
+	}
+	if err := conn.WriteJSON(&m); err != nil {
+		log.Errorf("Err while authack %v", err)
+		if err2 := conn.Close(); err2 != nil {
+			log.Errorf("Got err while closing socket during auth: %v", err2)
+		}
+		return
+	}
+
+	client := newClient(s.hub, s.gnats, conn, s.chatService, u)
 	client.hub.register <- client
 
 	// Allow collection of memory referenced by the caller by doing all work in
@@ -73,10 +105,33 @@ func (s *Server) serveWs(w http.ResponseWriter, r *http.Request) {
 	go client.readPump()
 }
 
+type AuthRequest struct {
+	Token string `binding:"required"`
+}
+
+func authenticateSocket(conn *websocket.Conn, jwt *auth.JWT) (*auth.JWTUser, error) {
+	if err := conn.SetReadDeadline(time.Now().Add(10 * time.Second)); err != nil {
+		log.Errorf("Error occurred while setting write deadline during auth: %v", err)
+		return nil, err
+	}
+
+	var r AuthRequest
+	if err := conn.ReadJSON(&r); err != nil {
+		return nil, err
+	}
+
+	j, err := jwt.ParseAndValidateJWT(r.Token)
+	if err != nil {
+		return nil, err
+	}
+
+	return &j, nil
+}
+
 func (s *Server) registerUser(c *gin.Context) {
-	var ur models.CreateUserRequest
+	var ur users.CreateUserRequest
 	if err := c.ShouldBindJSON(&ur); err != nil {
-		utils.HandleValidationError(c, err)
+		apierrs.HandleValidationError(c, err)
 		return
 	}
 
@@ -86,42 +141,32 @@ func (s *Server) registerUser(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusCreated, u.ToDTO())
+	c.JSON(http.StatusCreated, u)
 }
 
 func (s *Server) loginHandler(c *gin.Context) {
-	var body models.LoginRequest
+	var body users.LoginRequest
 	if err := c.ShouldBindJSON(&body); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"detail": err.Error()})
 		return
 	}
 
-	user, err := s.userService.GetUserByUsername(body.Username)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"detail": "Incorrect username or password."})
-		return
-	}
-
-	if user.Password != body.Password {
-		c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"detail": "Incorrect username or password."})
-		return
-	}
-
-	jwt, err := s.jwt.CreateJWT(user)
-	if err != nil {
-		c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{"detail": "Error occurred while processing request"})
+	var jwt string
+	var err *apierrs.APIError
+	if jwt, err = s.userService.LoginUser(body); err != nil {
+		err.HandleResponse(c)
 		return
 	}
 
 	c.JSON(http.StatusOK, &map[string]string{
-		"token": jwt,
+		"Token": jwt,
 	})
 }
 
 func (s *Server) createChatRoomHandler(c *gin.Context) {
-	body := models.CreateChatRoomRequest{}
+	body := chat.CreateChatRoomRequest{}
 	if err := c.ShouldBindJSON(&body); err != nil {
-		utils.HandleValidationError(c, err)
+		apierrs.HandleValidationError(c, err)
 		return
 	}
 
@@ -142,7 +187,7 @@ func (s *Server) listChatRoomsHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, models.PageResponse{Results: rooms})
+	c.JSON(http.StatusOK, pagination.PageResponse{Results: rooms})
 }
 
 func (s *Server) chatHistoryHandler(c *gin.Context) {
@@ -153,5 +198,5 @@ func (s *Server) chatHistoryHandler(c *gin.Context) {
 		return
 	}
 
-	c.JSON(200, models.PageResponse{Results: msgs})
+	c.JSON(200, pagination.PageResponse{Results: msgs})
 }

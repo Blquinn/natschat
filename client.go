@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/satori/go.uuid"
-	"natschat/services"
-	"natschat/utils"
+	"natschat/components/chat"
+	"natschat/utils/apierrs"
+	"natschat/utils/auth"
 	"net/http"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -61,7 +63,9 @@ type Client struct {
 	// The websocket connection.
 	conn *websocket.Conn
 
-	cs services.IChatService
+	user *auth.JWTUser
+
+	cs *chat.Service
 
 	validate *validator.Validate
 
@@ -69,13 +73,14 @@ type Client struct {
 	send chan []byte
 }
 
-func newClient(hub *Hub, gnats *Gnats, conn *websocket.Conn, cs services.IChatService) *Client {
+func newClient(hub *Hub, gnats *Gnats, conn *websocket.Conn, cs *chat.Service, user *auth.JWTUser) *Client {
 	return &Client{
 		hub:      hub,
 		gnats:    gnats,
 		subs:     make(map[*Subscription]bool),
 		conn:     conn,
 		cs:       cs,
+		user:     user,
 		validate: validator.New(&validator.Config{TagName: "validate"}),
 		send:     make(chan []byte, 100),
 	}
@@ -113,7 +118,7 @@ func (c *Client) handleMessage(bts []byte) {
 			return
 		}
 
-		ves := utils.FormatValidationErrors(errs)
+		ves := apierrs.FormatValidationErrors(errs)
 
 		m.Body = msg
 		errMsg := Message{
@@ -249,12 +254,43 @@ func (c *Client) handleChatMessage(m *ChatMessage) {
 		return
 	}
 
+	chunks := strings.Split(m.Channel, ".")
+	if len(chunks) < 3 {
+		c.SendJSON(Message{
+			Type: MessageTypeServerErr,
+			Body: ServerErrorMessage{
+				Message: "Sever error occurred",
+			},
+		})
+		log.Errorf("Unable to parse channel: %s", m.Channel)
+		return
+	}
+
+	if _, err := c.cs.SaveChatMessage(m.Content, chunks[2], c.user); err != nil {
+		if err.IsPublic {
+			c.SendJSON(Message{
+				Type: MessageTypeValidationErr,
+				Body: ServerErrorMessage{
+					Message: err.Message,
+				},
+			})
+		} else {
+			c.SendJSON(Message{
+				Type: MessageTypeServerErr,
+				Body: ServerErrorMessage{
+					Message: "Sever error occurred",
+				},
+			})
+			log.Errorf("Error occurred while saving chat message %v", err)
+			return
+		}
+	}
+
 	b := bytes.Buffer{}
-	err := gob.NewEncoder(&b).Encode(Message{
+	if err := gob.NewEncoder(&b).Encode(Message{
 		Type: MessageTypeChat,
 		Body: m,
-	})
-	if err != nil {
+	}); err != nil {
 		log.Errorf("failed to serialize message to nats: %v", err)
 		r := Message{
 			Type: MessageTypeServerErr,
@@ -266,8 +302,7 @@ func (c *Client) handleChatMessage(m *ChatMessage) {
 		return
 	}
 
-	err = c.gnats.Publish(m.Channel, b.Bytes())
-	if err != nil {
+	if err := c.gnats.Publish(m.Channel, b.Bytes()); err != nil {
 		log.Errorf("failed to send message to gnats server: %v", err)
 		r := Message{
 			Type: MessageTypeServerErr,

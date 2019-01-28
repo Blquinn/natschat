@@ -53,8 +53,7 @@ create table chat_messages
 	public_id text not null,
 	body text not null,
 	user_id integer not null references users(id),
-	chat_room_id integer not null references chat_rooms(id),
-	message_type text not null
+	chat_room_id integer not null references chat_rooms(id)
 );
 
 create index idx_chat_messages_deleted_at

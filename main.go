@@ -10,10 +10,11 @@ import (
 	"github.com/nats-io/gnatsd/server"
 	"github.com/nats-io/go-nats"
 	log "github.com/sirupsen/logrus"
+	"natschat/components/chat"
+	"natschat/components/users"
 	"natschat/config"
-	"natschat/models"
-	"natschat/services"
 	"natschat/utils/auth"
+	"natschat/utils/validation"
 	"os"
 	"time"
 )
@@ -33,7 +34,7 @@ func init() {
 func main() {
 	flag.Parse()
 
-	binding.Validator = models.NewDefaultValidator()
+	binding.Validator = validation.NewDefaultValidator()
 
 	cfg, err := getConfig()
 	if err != nil {
@@ -79,9 +80,9 @@ func main() {
 		}
 	}()
 
-	userService := services.NewUserService(db)
-	chatService := services.NewChatService(db)
 	jwt := auth.NewJWT(cfg)
+	userService := users.NewService(db, jwt)
+	chatService := chat.NewService(db)
 
 	s := Server{
 		config:      cfg,

@@ -1,16 +1,15 @@
 // +build integration
 
-package services
+package users
 
 import (
-	"natschat/models"
 	"natschat/test"
 	"testing"
 )
 
 func TestUserService_CreateUser(t *testing.T) {
-	us := NewUserService(test.GetTestDB())
-	ur := models.CreateUserRequest{
+	us := NewService(test.GetTestDB())
+	ur := CreateUserRequest{
 		Username:  "ben",
 		Password:  "password",
 		Email:     "ben@email.com",

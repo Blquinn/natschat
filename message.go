@@ -1,21 +1,19 @@
 package main
 
-import "natschat/utils"
+import "natschat/utils/apierrs"
 
 const (
-	MessageTypeSub   = "SUB"
-	MessageTypeUnSub = "UNSUB"
-
-	MessageTypeChat = "CHAT"
-
-	MessageTypeSubAck   = "SUBACK"
-	MessageTypeUnSubAck = "UNSUBACK"
-
-	MessageTypeChatAck = "CHATACK"
-
-	MessageTypeValidationErr = "BAD"
-	MessageTypeForbiddenErr  = "FORBIDDEN"
-	MessageTypeServerErr     = "ERR"
+	MessageTypeAuthAck         = "AUTHACK"
+	MessageTypeSub             = "SUB"
+	MessageTypeUnSub           = "UNSUB"
+	MessageTypeChat            = "CHAT"
+	MessageTypeSubAck          = "SUBACK"
+	MessageTypeUnSubAck        = "UNSUBACK"
+	MessageTypeChatAck         = "CHATACK"
+	MessageTypeValidationErr   = "BAD"
+	MessageTypeForbiddenErr    = "FORBIDDEN"
+	MessageTypeUnauthorizedErr = "UNAUTHORIZED"
+	MessageTypeServerErr       = "ERR"
 )
 
 var (
@@ -44,7 +42,7 @@ type ChatMessage struct {
 
 type ValidationErrorMessage struct {
 	OriginalMessage string
-	Errors          []utils.ValidationError
+	Errors          []apierrs.ValidationError
 }
 
 type ServerErrorMessage struct {

@@ -3,9 +3,7 @@ package auth
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
-	"github.com/palantir/stacktrace"
 	log "github.com/sirupsen/logrus"
-	"natschat/models"
 	"strings"
 )
 
@@ -26,39 +24,16 @@ type authError struct {
 	Err         error
 }
 
-func GetUserOrPanic(c *gin.Context) models.JWTUser {
+func GetUserOrPanic(c *gin.Context) JWTUser {
 	user, exists := c.Get("user")
 	if !exists {
 		panic("`user` does not exist in gin context.")
 	}
-	userCasted, ok := user.(models.JWTUser)
+	userCasted, ok := user.(JWTUser)
 	if !ok {
 		panic("failed to cast context user to models.User")
 	}
 	return userCasted
-}
-
-// UserVerified checks that a user has a valid auth token and
-// that their account has been marked as verified
-func UserVerified(c *gin.Context) {
-	u, exists := c.Get("user")
-	if !exists {
-		log.Println("user struct not available in gin context")
-		c.JSON(500, serverError)
-		c.Abort()
-		return
-	}
-
-	_, ok := u.(models.User)
-
-	if !ok {
-		c.JSON(500, serverError)
-		c.Abort()
-		log.Errorln(stacktrace.NewError("failed to cast user in gin context"))
-		return
-	}
-
-	c.Next()
 }
 
 func parseBearerToken(c *gin.Context) (string, *authError) {
