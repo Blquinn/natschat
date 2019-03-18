@@ -23,3 +23,4 @@ gnatsd:
   log: true
   debug: false
   trace: false
+  url: nats://localhost:4222

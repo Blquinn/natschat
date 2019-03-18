@@ -39,6 +39,7 @@ type Config struct {
 		Log   bool `yaml:"log"`
 		Debug bool `yaml:"debug"`
 		Trace bool `yaml:"trace"`
+		URL string `yaml:"url"`
 	} `yaml:"gnatsd"`
 }
 
@@ -96,10 +97,12 @@ func GetTestConfig() *Config {
 			Log   bool `yaml:"log"`
 			Debug bool `yaml:"debug"`
 			Trace bool `yaml:"trace"`
+			URL   string `yaml:"url"`
 		}{
 			Log:   false,
 			Debug: false,
 			Trace: false,
+			URL: "nats://localhost:4222",
 		},
 	}
 }

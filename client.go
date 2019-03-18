@@ -245,81 +245,46 @@ func (c *Client) handleChatMessage(m *ChatMessage) {
 		}
 	}
 	if !found {
-		c.SendJSON(Message{
-			Type: MessageTypeForbiddenErr,
-			Body: ServerErrorMessage{
-				Message: "You are not authorized to publish to channel: " + m.Channel,
-			},
-		})
+		msg := "You are not authorized to publish to channel: " + m.Channel
+		c.SendJSON(Message{Type: MessageTypeForbiddenErr, Body: ServerErrorMessage{Message: msg}})
 		return
 	}
 
 	chunks := strings.Split(m.Channel, ".")
 	if len(chunks) < 3 {
-		c.SendJSON(Message{
-			Type: MessageTypeServerErr,
-			Body: ServerErrorMessage{
-				Message: "Sever error occurred",
-			},
-		})
+		c.SendJSON(Message{Type: MessageTypeServerErr, Body: ServerErrorMessage{Message: "Sever error occurred"}})
 		log.Errorf("Unable to parse channel: %s", m.Channel)
 		return
 	}
 
 	if _, err := c.cs.SaveChatMessage(m.Content, chunks[2], c.user); err != nil {
 		if err.IsPublic {
-			c.SendJSON(Message{
-				Type: MessageTypeValidationErr,
-				Body: ServerErrorMessage{
-					Message: err.Message,
-				},
-			})
+			c.SendJSON(Message{Type: MessageTypeValidationErr, Body: ServerErrorMessage{Message: err.Message}})
 		} else {
-			c.SendJSON(Message{
-				Type: MessageTypeServerErr,
-				Body: ServerErrorMessage{
-					Message: "Sever error occurred",
-				},
-			})
+			c.SendJSON(Message{Type: MessageTypeServerErr, Body: ServerErrorMessage{Message: "Sever error occurred"}})
 			log.Errorf("Error occurred while saving chat message %v", err)
 			return
 		}
 	}
 
 	b := bytes.Buffer{}
-	if err := gob.NewEncoder(&b).Encode(Message{
-		Type: MessageTypeChat,
-		Body: m,
-	}); err != nil {
+	msg := Message{Type: MessageTypeChat, Body: m}
+	if err := gob.NewEncoder(&b).Encode(msg); err != nil {
 		log.Errorf("failed to serialize message to nats: %v", err)
-		r := Message{
-			Type: MessageTypeServerErr,
-			Body: ServerErrorMessage{
-				Message: "failed to process message",
-			},
-		}
+		r := Message{Type: MessageTypeServerErr, Body: ServerErrorMessage{Message: "failed to process message"}}
 		c.SendJSON(r)
 		return
 	}
 
 	if err := c.gnats.Publish(m.Channel, b.Bytes()); err != nil {
 		log.Errorf("failed to send message to gnats server: %v", err)
-		r := Message{
-			Type: MessageTypeServerErr,
-			Body: ServerErrorMessage{
-				Message: "failed to process message",
-			},
-		}
+		r := Message{Type: MessageTypeServerErr, Body: ServerErrorMessage{Message: "failed to process message"}}
 		c.SendJSON(r)
 		return
 	}
+	log.Debugf("Successfully sent chat message to gnatsd channel %s", m.Channel)
 
-	r := Message{
-		Type: MessageTypeChatAck,
-		Body: m,
-	}
-	c.SendJSON(r)
-	return
+	c.SendJSON(Message{Type: MessageTypeChatAck, Body: m})
 }
 
 // readPump pumps messages from the websocket connection to the hub.

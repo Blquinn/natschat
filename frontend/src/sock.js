@@ -63,6 +63,7 @@ function connect(host, token) {
                 break;
             case 'CHAT':
                 console.log("Got CHAT", obj);
+                // TODO: Fix this (message is in wrong format)
                 store.commit('addNewChatMessage', obj.Body);
                 break;
             case 'CHATACK':

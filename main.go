@@ -56,7 +56,11 @@ func main() {
 
 	runGnatsServer(cfg, gnatsOpts)
 
-	ns, err := nats.Connect(nats.DefaultURL)
+	u := nats.DefaultURL
+	if cfg.Gnatsd.URL != "" {
+		u = cfg.Gnatsd.URL
+	}
+	ns, err := nats.Connect(u)
 	if err != nil {
 		panic(err)
 	}
