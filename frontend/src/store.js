@@ -5,7 +5,7 @@ import {connect} from "./sock";
 
 Vue.use(Vuex);
 
-function mapChatRoom(room) {
+export function mapChatRoom(room) {
   return {
     id: room.ID,
     insertedAt: room.InsertedAt,
@@ -19,7 +19,7 @@ function mapChatRoom(room) {
   };
 }
 
-function mapChatMessage(message) {
+export function mapChatMessage(message) {
   return {
     id: message.ID,
     clientId: '',

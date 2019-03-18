@@ -29,6 +29,13 @@ type Message struct {
 	Body interface{} `validate:"required"`
 }
 
+func NewMessage(typ string, body interface{}) Message {
+	return Message{
+		Type: typ,
+		Body: body,
+	}
+}
+
 type SubscriptionMessage struct {
 	Channel string `validate:"required"`
 }
@@ -47,4 +54,10 @@ type ValidationErrorMessage struct {
 
 type ServerErrorMessage struct {
 	Message string
+}
+
+func NewServerErrorMessage(message string) ServerErrorMessage {
+	return ServerErrorMessage{
+		Message: message,
+	}
 }

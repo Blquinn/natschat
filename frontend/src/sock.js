@@ -1,4 +1,4 @@
-import store from './store';
+import store, {mapChatMessage} from './store';
 
 const reConnectTimeout = 2000;
 
@@ -63,8 +63,7 @@ function connect(host, token) {
                 break;
             case 'CHAT':
                 console.log("Got CHAT", obj);
-                // TODO: Fix this (message is in wrong format)
-                store.commit('addNewChatMessage', obj.Body);
+                store.commit('addNewChatMessage', {roomId: obj.Body.ChatRoomID, message: mapChatMessage(obj.Body)});
                 break;
             case 'CHATACK':
                 console.log("Got CHATACK", obj);

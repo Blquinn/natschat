@@ -22,6 +22,7 @@ import (
 
 func init() {
 	gob.Register(ChatMessage{})
+	gob.Register(chat.ChatMessageDTO{})
 }
 
 const (
@@ -257,7 +258,8 @@ func (c *Client) handleChatMessage(m *ChatMessage) {
 		return
 	}
 
-	if _, err := c.cs.SaveChatMessage(m.Content, chunks[2], c.user); err != nil {
+	dbMsg, err := c.cs.SaveChatMessage(m.Content, chunks[2], c.user)
+	if err != nil {
 		if err.IsPublic {
 			c.SendJSON(Message{Type: MessageTypeValidationErr, Body: ServerErrorMessage{Message: err.Message}})
 		} else {
@@ -268,23 +270,23 @@ func (c *Client) handleChatMessage(m *ChatMessage) {
 	}
 
 	b := bytes.Buffer{}
-	msg := Message{Type: MessageTypeChat, Body: m}
+	msg := Message{Type: MessageTypeChat, Body: dbMsg}
 	if err := gob.NewEncoder(&b).Encode(msg); err != nil {
 		log.Errorf("failed to serialize message to nats: %v", err)
-		r := Message{Type: MessageTypeServerErr, Body: ServerErrorMessage{Message: "failed to process message"}}
+		r := NewMessage(MessageTypeServerErr, NewServerErrorMessage("failed to process message"))
 		c.SendJSON(r)
 		return
 	}
 
 	if err := c.gnats.Publish(m.Channel, b.Bytes()); err != nil {
 		log.Errorf("failed to send message to gnats server: %v", err)
-		r := Message{Type: MessageTypeServerErr, Body: ServerErrorMessage{Message: "failed to process message"}}
+		r := NewMessage(MessageTypeServerErr, NewServerErrorMessage("failed to process message"))
 		c.SendJSON(r)
 		return
 	}
 	log.Debugf("Successfully sent chat message to gnatsd channel %s", m.Channel)
 
-	c.SendJSON(Message{Type: MessageTypeChatAck, Body: m})
+	c.SendJSON(NewMessage(MessageTypeChatAck, m))
 }
 
 // readPump pumps messages from the websocket connection to the hub.
