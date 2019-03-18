@@ -7,14 +7,14 @@ import (
 	"github.com/jinzhu/gorm"
 	"time"
 
-	//"github.com/sirupsen/logrus"
-	log "github.com/sirupsen/logrus"
 	"natschat/components/chat"
 	"natschat/components/users"
 	"natschat/config"
 	"natschat/utils/apierrs"
 	"natschat/utils/auth"
 	"natschat/utils/pagination"
+	//"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 	"net/http"
 )
 

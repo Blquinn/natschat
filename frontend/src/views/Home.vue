@@ -3,7 +3,7 @@
     <!--<input type="text" >-->
     <div class="chat-rooms-container">
       <p>Select a chat room</p>
-      <div class="room" v-for="room in rooms" v-on:click="openChatRoom(room)">
+      <div class="room" v-for="room in rooms" :key="room.id" v-on:click="openChatRoom(room)">
         {{ room.name }}
       </div>
     </div>
@@ -17,7 +17,7 @@
     </div>
 
     <div class="chats-container">
-        <ChatContainer v-for="room in openRooms" v-bind:room="room" />
+        <ChatContainer v-for="room in openRooms" v-bind:room="room" :key="room.id" />
     </div>
 
   </div>
@@ -34,7 +34,7 @@ export default {
       return this.$store.state.chatRooms
     },
     openRooms() {
-      return this.$store.state.chatRooms.filter(r => r.active === true)
+      return this.$store.getters.openRooms;
     },
   },
   data: function() {

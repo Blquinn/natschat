@@ -44,6 +44,11 @@ export default new Vuex.Store({
     loadingChatRooms: false,
   },
 
+  getters: {
+    openRooms(state) {
+      return state.chatRooms.filter(r => r.active === true);
+    }
+  },
 
   mutations: {
     updateConnectionStatus(state, connected) {
@@ -200,8 +205,8 @@ export default new Vuex.Store({
           context.commit('addChatRoom', mapChatRoom(res.data));
         });
     },
-    getChatHistoryThenSubscribe: function(context, room) {
-      context.state.httpClient.get(`/api/rooms/${room.id}/history`)
+    getChatHistoryThenSubscribe: function(context, {roomId, channel}) {
+      context.state.httpClient.get(`/api/rooms/${roomId}/history`)
         .catch(err => {
           alert('Error while retrieving chat history');
           console.error(err)
@@ -209,11 +214,11 @@ export default new Vuex.Store({
           console.info(res.data);
           const chatLog = res.data.Results.map(msg => mapChatMessage(msg));
           context.commit('setChatLog', {
-            roomId: room.id,
+            roomId: roomId,
             log: chatLog,
           });
-          context.commit('setLoadingRoom', {roomId: room.id, isLoading: false});
-          context.dispatch('subscribeToChannel', room.channel);
+          context.commit('setLoadingRoom', {roomId: roomId, isLoading: false});
+          context.dispatch('subscribeToChannel', channel);
         })
     },
     subscribeToChannel: function(context, channel) {

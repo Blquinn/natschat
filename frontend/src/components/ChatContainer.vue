@@ -3,7 +3,7 @@
         <div class="active" v-if="!room.loading">
             <h1>{{room.name}}</h1>
             <div id="chat-log">
-                <div v-for="message in room.chatLog">
+                <div v-for="message in room.chatLog" :key="message.id">
                     <span>{{ message.user }}</span>:
                     <span>{{ message.content }}</span>
                     <span v-if="message.acknowledged">✔️</span>
@@ -37,7 +37,7 @@
       };
     },
     created: function () {
-      this.$store.dispatch('getChatHistoryThenSubscribe', this.room);
+      this.$store.dispatch('getChatHistoryThenSubscribe', {roomId: this.room.id, channel: this.room.channel});
     },
     methods: {
       sendMessage: function sendMessage() {
