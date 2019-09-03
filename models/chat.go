@@ -10,7 +10,7 @@ type ChatRoom struct {
 
 	Name          string              `gorm:"unique;not null"`
 	PublicID      string              `gorm:"unique;not null;"`
-	Owner         *User               `gorm:"association_foreignkey:ID"`
+	Owner         *User               `gorm:"association_foreignkey:ID;"`
 	OwnerID       uint                `gorm:"not null;"`
 	Subscriptions []*ChatSubscription `gorm:"foreignkey:ChatRoomID"`
 	Messages      []*ChatMessage      `gorm:"foreignkey:ChatRoomID"`
@@ -27,9 +27,9 @@ func NewChatRoom(name string, ownerID uint) ChatRoom {
 type ChatSubscription struct {
 	gorm.Model
 
-	User       *User     `gorm:"association_foreignkey:ID"`
+	User       *User     `gorm:"association_foreignkey:ID;"`
 	UserID     uint      `gorm:"not null;"`
-	ChatRoom   *ChatRoom `gorm:"association_foreignkey:ID"`
+	ChatRoom   *ChatRoom `gorm:"association_foreignkey:ID;"`
 	ChatRoomID uint      `gorm:"not null;"`
 }
 
@@ -45,9 +45,9 @@ type ChatMessage struct {
 
 	PublicID   string    `gorm:"not null;"`
 	Body       string    `gorm:"not null;"`
-	User       *User     `gorm:"association_foreignkey:ID"`
+	User       *User     `gorm:"association_foreignkey:ID;"`
 	UserID     uint      `gorm:"not null;"`
-	ChatRoom   *ChatRoom `gorm:"association_foreignkey:ID"`
+	ChatRoom   *ChatRoom `gorm:"association_foreignkey:ID;"`
 	ChatRoomID uint      `gorm:"not null;"`
 }
 

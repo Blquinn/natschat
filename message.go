@@ -25,8 +25,8 @@ var (
 )
 
 type Message struct {
-	Type string      `validate:"required"`
-	Body interface{} `validate:"required"`
+	Type string      `validate:"required" json:"type"`
+	Body interface{} `validate:"required" json:"body"`
 }
 
 func NewMessage(typ string, body interface{}) Message {
@@ -37,23 +37,23 @@ func NewMessage(typ string, body interface{}) Message {
 }
 
 type SubscriptionMessage struct {
-	Channel string `validate:"required"`
+	Channel string `validate:"required" json:"channel"`
 }
 
 type ChatMessage struct {
-	ID       string
-	ClientID string `validate:"required"`
-	Channel  string `validate:"required"`
-	Content  string `validate:"required"`
+	ID       string `json:"id"`
+	ClientID string `validate:"required" json:"clientId"`
+	Channel  string `validate:"required" json:"channel"`
+	Content  string `validate:"required" json:"content"`
 }
 
 type ValidationErrorMessage struct {
-	OriginalMessage string
-	Errors          []apierrs.ValidationError
+	OriginalMessage string                    `json:"originalMessage"`
+	Errors          []apierrs.ValidationError `json:"errors"`
 }
 
 type ServerErrorMessage struct {
-	Message string
+	Message string `json:"message"`
 }
 
 func NewServerErrorMessage(message string) ServerErrorMessage {

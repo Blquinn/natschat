@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	log "github.com/sirupsen/logrus"
 	"natschat/config"
+	"natschat/models"
 	"time"
 )
 
@@ -105,14 +106,15 @@ func (j *JWT) ParseAndValidateJWT(tokenString string) (JWTUser, error) {
 }
 
 // creates a jwtString
-func (j *JWT) CreateJWT(email, username, publicID string, userID uint) (string, error) {
+//func (j *JWT) CreateJWT(email, username, publicID string, userID uint) (string, error) {
+func (j *JWT) CreateJWT(user models.User) (string, error) {
 	// Create a new token object, specifying signing method and the claims
 	// you would like it to contain.
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"email":     email,
-		"username":  username,
-		"user_id":   uint32(userID),
-		"public_id": publicID,
+		"email":     user.Email,
+		"username":  user.Username,
+		"user_id":   uint32(user.ID),
+		"public_id": user.PublicID,
 		"exp":       time.Now().In(time.UTC).Add(time.Duration(j.config.JWT.ExpirySeconds) * time.Second).Unix(),
 	})
 

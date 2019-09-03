@@ -1,11 +1,13 @@
 package users
 
+import "natschat/models"
+
 type UserDTO struct {
-	ID        string // ID
-	Username  string
-	Email     string
-	FirstName string
-	LastName  string
+	ID        string `json:"id"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	FirstName string `json:"firstName"`
+	LastName  string `json:"lastName"`
 }
 
 func NewUserDTO(id, username, email, firstName, lastName string) UserDTO {
@@ -18,9 +20,19 @@ func NewUserDTO(id, username, email, firstName, lastName string) UserDTO {
 	}
 }
 
+func UserToDTO(user models.User) UserDTO {
+	return UserDTO{
+		ID:        user.PublicID,
+		Username:  user.Username,
+		Email:     user.Email,
+		FirstName: user.FirstName,
+		LastName:  user.LastName,
+	}
+}
+
 type PublicUserDTO struct {
-	ID       string // ID
-	Username string
+	ID       string `json:"id"`
+	Username string `json:"username"`
 }
 
 func NewPublicUserDTO(id, username string) PublicUserDTO {
@@ -41,4 +53,9 @@ type CreateUserRequest struct {
 type LoginRequest struct {
 	Username string `json:"username" validate:"required" binding:"required"`
 	Password string `json:"password" validate:"required" binding:"required"`
+}
+
+type AuthResponseDTO struct {
+	Token string  `json:"token"`
+	User  UserDTO `json:"user"`
 }

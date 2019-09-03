@@ -7,24 +7,24 @@ Vue.use(Vuex);
 
 export function mapChatRoom(room) {
   return {
-    id: room.ID,
-    insertedAt: room.InsertedAt,
-    updatedAt: room.UpdatedAt,
-    name: room.Name,
+    id: room.id,
+    insertedAt: room.insertedAt,
+    updatedAt: room.updatedAt,
+    name: room.name,
     active: false,
     loading: false,
     channelSubscribed: false,
     chatLog: [],
-    channel: `chat.room.${room.ID}`,
+    channel: `chat.room.${room.id}`,
   };
 }
 
 export function mapChatMessage(message) {
   return {
-    id: message.ID,
+    id: message.id,
     clientId: '',
-    content: message.Body,
-    user: message.User.Username,
+    content: message.body,
+    user: message.user,
     acknowledged: true,
     deliveryFailure: false,
   };
@@ -38,6 +38,7 @@ export default new Vuex.Store({
   state: {
     ws: null,
     httpClient: null,
+    user: null,
     socketConnected: false,
     socket: null,
     chatRooms: [],
@@ -63,10 +64,17 @@ export default new Vuex.Store({
       state.httpClient = client;
     },
 
+    setUser(state, user) {
+      state.user = user;
+    },
+
     addNewChatMessage(state, {roomId, message}) {
       const room = state.chatRooms.find(r => r.id === roomId);
       if (room !== undefined) {
-        room.chatLog.push(message);
+        const msg = room.chatLog.find(m => m.id === message.id);
+        if (msg === undefined) {
+          room.chatLog.push(message);
+        }
       }
     },
 
@@ -81,7 +89,7 @@ export default new Vuex.Store({
     },
 
     acknowledgeSubscription(state, subscription) {
-      const roomID = subscription.Channel.split('.').pop();
+      const roomID = subscription.channel.split('.').pop();
 
       const room = state.chatRooms.find(r => r.id === roomID);
       if (room === undefined) {
@@ -92,9 +100,7 @@ export default new Vuex.Store({
       room.channelSubscribed = true;
     },
 
-    acknowledgeChatMessage(state, {roomId, messageClientId}) {
-      // const roomID = message.Channel.split('.').pop();
-
+    acknowledgeChatMessage(state, {roomId, messageClientId, messageId}) {
       const room = state.chatRooms.find(r => r.id === roomId);
       if (room === undefined) {
         console.error(`Chat room with id ${roomId} not found, while acknowledging chat message.`);
@@ -107,6 +113,7 @@ export default new Vuex.Store({
         return;
       }
 
+      msg.id = messageId;
       msg.acknowledged = true;
     },
 
@@ -174,8 +181,9 @@ export default new Vuex.Store({
           alert('Login failed');
           console.error('Login failed', err);
         }).then(res => {
-          context.commit('setHttpClient', new HttpClient(host, res.data.Token));
-          connect(host, res.data.Token);
+          context.commit('setHttpClient', new HttpClient(host, res.data.token));
+          context.commit('setUser', res.data.user);
+          connect(host, res.data.token);
         });
     },
     loadChatRooms: function (context) {
@@ -186,7 +194,7 @@ export default new Vuex.Store({
           console.error(err);
         })
         .then(res => {
-          this.commit('syncChatRooms', res.data.Results.map(r => mapChatRoom(r)));
+          this.commit('syncChatRooms', res.data.results.map(r => mapChatRoom(r)));
           context.commit('setLoadingRooms', false);
         });
     },
@@ -195,7 +203,7 @@ export default new Vuex.Store({
         return;
       }
 
-      let body = {Name: name};
+      let body = {name: name};
 
       context.state.httpClient.post('/api/rooms', body)
         .catch(err => {
@@ -212,7 +220,7 @@ export default new Vuex.Store({
           console.error(err)
         }).then(res => {
           console.info(res.data);
-          const chatLog = res.data.Results.map(msg => mapChatMessage(msg));
+          const chatLog = res.data.results.map(msg => mapChatMessage(msg));
           context.commit('setChatLog', {
             roomId: roomId,
             log: chatLog,
@@ -223,9 +231,9 @@ export default new Vuex.Store({
     },
     subscribeToChannel: function(context, channel) {
       context.state.ws.send(JSON.stringify({
-        Type: 'SUB',
-        Body: {
-          Channel: channel,
+        type: 'SUB',
+        body: {
+          channel: channel,
         }
       }));
     },
@@ -241,7 +249,7 @@ export default new Vuex.Store({
         roomId: room.id,
         message: {
           content: messageBody,
-          user: 'ben',
+          user: context.state.user,
           acknowledged: false,
           clientId: clientId,
           deliveryFailure: false,
@@ -249,11 +257,11 @@ export default new Vuex.Store({
       });
 
       context.state.ws.send(JSON.stringify({
-        Type: 'CHAT',
-        Body: {
-          Channel: room.channel,
-          Content: messageBody,
-          ClientID: clientId,
+        type: 'CHAT',
+        body: {
+          channel: room.channel,
+          content: messageBody,
+          clientId: clientId,
         }
       }));
 

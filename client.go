@@ -5,7 +5,6 @@ import (
 	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"github.com/satori/go.uuid"
 	"natschat/components/chat"
 	"natschat/utils/apierrs"
 	"natschat/utils/auth"
@@ -162,7 +161,7 @@ func (c *Client) SendJSON(msg interface{}) {
 			Type: MessageTypeServerErr,
 			Body: "failed to serialize response",
 		})
-		c.send <- []byte(errMsg)
+		c.send <- errMsg
 		log.Errorln("failed to serialize response: " + err.Error())
 		return
 	}
@@ -236,8 +235,6 @@ func (c *Client) handleUnSubMessage(m *SubscriptionMessage) {
 }
 
 func (c *Client) handleChatMessage(m *ChatMessage) {
-	id := uuid.NewV4()
-	m.ID = id.String()
 	found := false
 	for s := range c.subs {
 		if s.sub.Subject == m.Channel {
@@ -265,9 +262,10 @@ func (c *Client) handleChatMessage(m *ChatMessage) {
 		} else {
 			c.SendJSON(Message{Type: MessageTypeServerErr, Body: ServerErrorMessage{Message: "Sever error occurred"}})
 			log.Errorf("Error occurred while saving chat message %v", err)
-			return
 		}
+		return
 	}
+	m.ID = dbMsg.ID
 
 	b := bytes.Buffer{}
 	msg := Message{Type: MessageTypeChat, Body: dbMsg}
@@ -312,11 +310,17 @@ func (c *Client) readPump() {
 		return nil
 	})
 	for {
-		_, message, err := c.conn.ReadMessage()
+		t, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Errorf("error while closing: %v", err)
 			}
+			break
+		}
+
+		if t == websocket.BinaryMessage {
+			log.Warnf("Client %s sent a binary message. Closing socket.", c.conn.RemoteAddr())
+			c.SendJSON(NewMessage(MessageTypeValidationErr, NewServerErrorMessage("Binary messages not accepted.")))
 			break
 		}
 		message = bytes.TrimSpace(bytes.Replace(message, newline, space, -1))
@@ -344,6 +348,7 @@ func (c *Client) writePump() {
 				log.Errorf("got err wile setting write deadline for websocket msg: %v", err)
 			}
 			if !ok {
+				log.Debugf("User send channel closed, closing websocket")
 				// The hub closed the channel.
 				if err := c.conn.WriteMessage(websocket.CloseMessage, []byte{}); err != nil {
 					log.Errorf("got error while writing close message: %v", err)

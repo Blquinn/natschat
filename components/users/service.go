@@ -22,23 +22,27 @@ func NewService(db *gorm.DB, jwt *auth.JWT) *Service {
 	}
 }
 
-func (us *Service) LoginUser(r LoginRequest) (string, *apierrs.APIError) {
+func (us *Service) LoginUser(r LoginRequest) (AuthResponseDTO, *apierrs.APIError) {
 	var err error
 	var user models.User
+	var res AuthResponseDTO
 	if err := us.db.First(&user, "username = ?", r.Username).Error; err != nil {
-		return "", apierrs.NewPublicError(err, "Incorrect username or password", http.StatusUnauthorized)
+		return res, apierrs.NewPublicError(err, "Incorrect username or password", http.StatusUnauthorized)
 	}
 
 	if user.Password != r.Password {
-		return "", apierrs.NewPublicError(err, "Incorrect username or password", http.StatusUnauthorized)
+		return res, apierrs.NewPublicError(err, "Incorrect username or password", http.StatusUnauthorized)
 	}
 
 	var jwt string
-	if jwt, err = us.jwt.CreateJWT(user.Email, user.Username, user.PublicID, user.ID); err != nil {
-		return "", apierrs.NewPrivateError(err)
+	if jwt, err = us.jwt.CreateJWT(user); err != nil {
+		return res, apierrs.NewPrivateError(err)
 	}
 
-	return jwt, nil
+	return AuthResponseDTO{
+		Token: jwt,
+		User:  UserToDTO(user),
+	}, nil
 }
 
 func (us *Service) CreateUser(ur CreateUserRequest) (UserDTO, *apierrs.APIError) {

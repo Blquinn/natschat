@@ -151,16 +151,14 @@ func (s *Server) loginHandler(c *gin.Context) {
 		return
 	}
 
-	var jwt string
+	var authResponse users.AuthResponseDTO
 	var err *apierrs.APIError
-	if jwt, err = s.userService.LoginUser(body); err != nil {
+	if authResponse, err = s.userService.LoginUser(body); err != nil {
 		err.HandleResponse(c)
 		return
 	}
 
-	c.JSON(http.StatusOK, &map[string]string{
-		"Token": jwt,
-	})
+	c.JSON(http.StatusOK, authResponse)
 }
 
 func (s *Server) createChatRoomHandler(c *gin.Context) {

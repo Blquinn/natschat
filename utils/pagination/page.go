@@ -1,5 +1,5 @@
 package pagination
 
 type PageResponse struct {
-	Results interface{}
+	Results interface{} `json:"results"`
 }

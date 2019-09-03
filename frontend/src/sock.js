@@ -16,7 +16,7 @@ function connect(host, token) {
     ws.onopen = function () {
         console.log('opened ws');
         ws.send(JSON.stringify({
-            Token: token,
+            token: token,
         }));
         setTimeout(function () {
             if (!authenticated) {
@@ -49,26 +49,26 @@ function connect(host, token) {
             return;
         }
 
-        switch (obj.Type) {
+        switch (obj.type) {
             case 'AUTHACK':
-                console.log('Got AUTHACK', obj.Body);
+                console.log('Got AUTHACK', obj.body);
                 authenticated = true;
                 store.commit('updateConnectionStatus', true);
                 store.commit('setWebsocketClient', ws);
                 break;
             case 'SUBACK':
-                console.log('Got SUBACK', obj.Body);
+                console.log('Got SUBACK', obj.body);
                 // store.commit('addNewChatMessage', obj);
-                store.commit('acknowledgeSubscription', obj.Body);
+                store.commit('acknowledgeSubscription', obj.body);
                 break;
             case 'CHAT':
                 console.log("Got CHAT", obj);
-                store.commit('addNewChatMessage', {roomId: obj.Body.ChatRoomID, message: mapChatMessage(obj.Body)});
+                store.commit('addNewChatMessage', {roomId: obj.body.chatRoomId, message: mapChatMessage(obj.body)});
                 break;
             case 'CHATACK':
                 console.log("Got CHATACK", obj);
-                const roomId = obj.Body.Channel.split('.').pop();
-                store.commit('acknowledgeChatMessage', {roomId, messageClientId: obj.Body.ClientID});
+                const roomId = obj.body.channel.split('.').pop();
+                store.commit('acknowledgeChatMessage', {roomId, messageClientId: obj.body.clientId, messageId: obj.body.id});
                 break;
             default:
                 console.log('Got other msg', obj);

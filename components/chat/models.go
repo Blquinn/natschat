@@ -6,24 +6,23 @@ import (
 )
 
 type ChatRoomDTO struct {
-	Name string
-	ID   string
+	ID   string `json:"id"`
+	Name string `json:"name"`
 }
 
 func NewChatRoomDTO(name, publicID string) ChatRoomDTO {
 	return ChatRoomDTO{
-		Name: name,
 		ID:   publicID,
+		Name: name,
 	}
 }
 
 type ChatMessageDTO struct {
-	ID         string // ID
-	ChatRoomID string // ID
-	CreatedAt  time.Time
-	Body       string
-
-	User users.PublicUserDTO
+	ID         string              `json:"id"`
+	ChatRoomID string              `json:"chatRoomId"`
+	CreatedAt  time.Time           `json:"createdAt"`
+	Body       string              `json:"body"`
+	User       users.PublicUserDTO `json:"user"`
 }
 
 func NewChatMessageDTO(id, roomID, userID, username, body string, createdAt time.Time) ChatMessageDTO {
@@ -37,10 +36,10 @@ func NewChatMessageDTO(id, roomID, userID, username, body string, createdAt time
 }
 
 type ChatMessageRequest struct {
-	Body        string
-	UserID      uint
-	ChatRoomID  uint
-	MessageType string
+	Body        string `json:"body"`
+	UserID      uint   `json:"userId"`
+	ChatRoomID  uint   `json:"chatRoomId"`
+	MessageType string `json:"messageType"`
 }
 
 type CreateChatRoomRequest struct {

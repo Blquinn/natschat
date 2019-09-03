@@ -2,12 +2,15 @@
     <div class="chat-container">
         <div class="active" v-if="!room.loading">
             <h1>{{room.name}}</h1>
-            <div id="chat-log">
-                <div v-for="message in room.chatLog" :key="message.id">
-                    <span>{{ message.user }}</span>:
-                    <span>{{ message.content }}</span>
-                    <span v-if="message.acknowledged">✔️</span>
-                    <span v-if="message.deliveryFailure">❌ - Failed to send message</span>
+            <div id="chat-log" v-chat-scroll="{always: false, smooth: true}">
+                <div v-for="message in room.chatLog" :key="message.id" class="message-container"
+                     v-bind:class="{'right': message.user.id === user.id, 'left': message.user.id !== user.id}">
+                    <div>
+                        <span>{{ message.user.username }}</span>:
+                        <span>{{ message.content }}</span>
+                        <span v-if="message.acknowledged">✔️</span>
+                        <span v-if="message.deliveryFailure">❌ - Failed to send message</span>
+                    </div>
                 </div>
             </div>
 
@@ -33,6 +36,7 @@
     },
     data: function () {
       return {
+        user: this.$store.state.user,
         messageInput: '',
       };
     },
@@ -66,5 +70,9 @@
         height: 20em;
         width: 30em;
         overflow-y: scroll;
+    }
+
+    .message-container + .right {
+        text-align: right;
     }
 </style>
